@@ -1,0 +1,47 @@
+<!DOCTYPE html>
+<html lang="he" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <title>Atlas Financial Management</title>
+    <style>
+        /* כאן נמצא כל העיצוב היוקרתי שבניתי עבורך */
+        :root { --bg: #F8F9FA; --sidebar: #1E293B; --accent: #2D4A3E; --gold: #B8732A; }
+        body { font-family: 'Assistant', sans-serif; background: var(--bg); display: flex; height: 100vh; margin: 0; }
+        aside { width: 260px; background: var(--sidebar); color: white; padding: 20px; }
+        main { flex: 1; padding: 30px; overflow-y: auto; }
+        .folder-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 20px; }
+        .folder-card { background: white; padding: 20px; border-radius: 12px; border: 1px solid #E2E8F0; text-align: center; cursor: pointer; }
+        .btn-upload { background: var(--accent); color: white; padding: 12px 24px; border-radius: 8px; border: none; cursor: pointer; font-weight: bold; }
+        .upload-zone { border: 2px dashed #E2E8F0; padding: 40px; text-align: center; background: white; margin-top: 20px; border-radius: 12px; }
+        table { width: 100%; border-collapse: collapse; margin-top: 30px; background: white; border-radius: 12px; }
+        th, td { padding: 15px; text-align: right; border-bottom: 1px solid #E2E8F0; }
+    </style>
+</head>
+<body>
+    <aside>
+        <h1 style="font-family: serif;">ATLAS</h1>
+        <nav>
+            <p>🏠 דשבורד</p>
+            <p>📂 ספקים</p>
+            <p>💰 לקוחות</p>
+            <p>⚖️ הונג קונג</p>
+        </nav>
+    </aside>
+    <main>
+        <header style="display:flex; justify-content: space-between; align-items: center;">
+            <h1>ניהול כספים - NYS Media</h1>
+            <button class="btn-upload">העלאת מסמך +</button>
+        </header>
+        <div class="folder-grid">
+            <div class="folder-card">📁<br><b>DATAR</b></div>
+            <div class="folder-card">📁<br><b>נאור מנטקה</b></div>
+            <div class="folder-card">📁<br><b>לקוחות</b></div>
+            <div class="folder-card">📁<br><b>מסמכי חברה</b></div>
+        </div>
+        <div class="upload-zone">
+            <h3>גרור לכאן חשבוניות או חוזים</h3>
+            <p>הקובץ ימוין אוטומטית לפי הישות הרלוונטית</p>
+        </div>
+    </main>
+</body>
+</html>
