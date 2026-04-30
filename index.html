@@ -1,47 +1,127 @@
+```html
 <!DOCTYPE html>
-<html lang="he" dir="rtl">
+<html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <title>Atlas Financial Management</title>
-    <style>
-        /* כאן נמצא כל העיצוב היוקרתי שבניתי עבורך */
-        :root { --bg: #F8F9FA; --sidebar: #1E293B; --accent: #2D4A3E; --gold: #B8732A; }
-        body { font-family: 'Assistant', sans-serif; background: var(--bg); display: flex; height: 100vh; margin: 0; }
-        aside { width: 260px; background: var(--sidebar); color: white; padding: 20px; }
-        main { flex: 1; padding: 30px; overflow-y: auto; }
-        .folder-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 20px; }
-        .folder-card { background: white; padding: 20px; border-radius: 12px; border: 1px solid #E2E8F0; text-align: center; cursor: pointer; }
-        .btn-upload { background: var(--accent); color: white; padding: 12px 24px; border-radius: 8px; border: none; cursor: pointer; font-weight: bold; }
-        .upload-zone { border: 2px dashed #E2E8F0; padding: 40px; text-align: center; background: white; margin-top: 20px; border-radius: 12px; }
-        table { width: 100%; border-collapse: collapse; margin-top: 30px; background: white; border-radius: 12px; }
-        th, td { padding: 15px; text-align: right; border-bottom: 1px solid #E2E8F0; }
-    </style>
+<meta charset="UTF-8">
+<title>Atlas MVP</title>
+
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600&display=swap" rel="stylesheet">
+
+<style>
+body { font-family: 'Inter', sans-serif; margin:0; display:flex; background:#f5f5f5; }
+aside { width:220px; background:#1e293b; color:white; padding:20px; }
+main { flex:1; padding:30px; }
+
+button { padding:10px 16px; border:none; background:#111; color:white; cursor:pointer; }
+
+table { width:100%; margin-top:20px; background:white; border-collapse: collapse; }
+td, th { padding:12px; border-bottom:1px solid #eee; }
+
+.card { background:white; padding:20px; margin-bottom:20px; }
+
+</style>
 </head>
+
 <body>
-    <aside>
-        <h1 style="font-family: serif;">ATLAS</h1>
-        <nav>
-            <p>🏠 דשבורד</p>
-            <p>📂 ספקים</p>
-            <p>💰 לקוחות</p>
-            <p>⚖️ הונג קונג</p>
-        </nav>
-    </aside>
-    <main>
-        <header style="display:flex; justify-content: space-between; align-items: center;">
-            <h1>ניהול כספים - NYS Media</h1>
-            <button class="btn-upload">העלאת מסמך +</button>
-        </header>
-        <div class="folder-grid">
-            <div class="folder-card">📁<br><b>DATAR</b></div>
-            <div class="folder-card">📁<br><b>נאור מנטקה</b></div>
-            <div class="folder-card">📁<br><b>לקוחות</b></div>
-            <div class="folder-card">📁<br><b>מסמכי חברה</b></div>
-        </div>
-        <div class="upload-zone">
-            <h3>גרור לכאן חשבוניות או חוזים</h3>
-            <p>הקובץ ימוין אוטומטית לפי הישות הרלוונטית</p>
-        </div>
-    </main>
+
+<aside>
+<h2>Atlas</h2>
+<p onclick="show('dashboard')">Dashboard</p>
+<p onclick="show('invoices')">Invoices</p>
+</aside>
+
+<main>
+
+<!-- DASHBOARD -->
+<div id="dashboard">
+<h1>Dashboard</h1>
+
+<div class="card">
+<h3>Total invoices</h3>
+<div id="total"></div>
+</div>
+
+</div>
+
+<!-- INVOICES -->
+<div id="invoices" style="display:none;">
+<h1>Invoices</h1>
+
+<button onclick="createInvoice()">+ New Invoice</button>
+
+<table>
+<thead>
+<tr>
+<th>ID</th>
+<th>Customer</th>
+<th>Amount</th>
+</tr>
+</thead>
+<tbody id="table"></tbody>
+</table>
+
+</div>
+
+</main>
+
+<script>
+
+// DB
+let db = JSON.parse(localStorage.getItem("atlas") || '{"invoices":[]}');
+
+function save(){
+  localStorage.setItem("atlas", JSON.stringify(db));
+}
+
+// NAV
+function show(page){
+  document.getElementById("dashboard").style.display = "none";
+  document.getElementById("invoices").style.display = "none";
+  document.getElementById(page).style.display = "block";
+  render();
+}
+
+// CREATE
+function createInvoice(){
+  const customer = prompt("Customer?");
+  const amount = prompt("Amount?");
+  if(!customer || !amount) return;
+
+  db.invoices.push({
+    id: "INV-"+Math.floor(Math.random()*10000),
+    customer,
+    amount
+  });
+
+  save();
+  render();
+}
+
+// RENDER
+function render(){
+
+  // dashboard
+  document.getElementById("total").innerText = db.invoices.length;
+
+  // table
+  const table = document.getElementById("table");
+  table.innerHTML = "";
+
+  db.invoices.forEach(i=>{
+    table.innerHTML += `
+    <tr>
+      <td>${i.id}</td>
+      <td>${i.customer}</td>
+      <td>${i.amount}</td>
+    </tr>`;
+  });
+
+}
+
+render();
+
+</script>
+
 </body>
 </html>
+```
