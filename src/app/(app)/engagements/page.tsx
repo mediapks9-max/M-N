@@ -15,6 +15,7 @@ import { ENGAGEMENT_STATUS_CLASSES, ENGAGEMENT_STATUSES } from "@/lib/domain";
 import {
   computeEngagementFinancials,
   type InvoiceFinancialRow,
+  type MetricPerformanceRow,
 } from "@/lib/finance";
 import { formatCurrency, formatDate } from "@/lib/format";
 import { getOrgContext } from "@/lib/org";
@@ -65,27 +66,39 @@ export default async function EngagementsPage({
     query = query.eq("status", params.status as EngagementStatus);
   }
 
-  const [{ data: engagementRows }, { data: invoiceRows }, { data: clients }, { data: services }] =
-    await Promise.all([
-      query,
-      supabase
-        .from("invoices")
-        .select("engagement_id, direction, status, total")
-        .eq("organization_id", org.id),
-      supabase
-        .from("clients")
-        .select("id, name")
-        .eq("organization_id", org.id)
-        .order("name"),
-      supabase
-        .from("services")
-        .select("id, name, is_active")
-        .eq("organization_id", org.id)
-        .order("sort_order"),
-    ]);
+  const [
+    { data: engagementRows },
+    { data: invoiceRows },
+    { data: metricRows },
+    { data: clients },
+    { data: services },
+  ] = await Promise.all([
+    query,
+    supabase
+      .from("invoices")
+      .select("engagement_id, direction, status, total")
+      .eq("organization_id", org.id),
+    supabase
+      .from("engagement_metrics")
+      .select(
+        "engagement_id, leads, approved_leads, conversions, clicks, revenue_generated, spend"
+      )
+      .eq("organization_id", org.id),
+    supabase
+      .from("clients")
+      .select("id, name")
+      .eq("organization_id", org.id)
+      .order("name"),
+    supabase
+      .from("services")
+      .select("id, name, is_active")
+      .eq("organization_id", org.id)
+      .order("sort_order"),
+  ]);
 
   const engagements = (engagementRows ?? []) as unknown as EngagementListRow[];
   const invoices = (invoiceRows ?? []) as InvoiceFinancialRow[];
+  const metrics = (metricRows ?? []) as MetricPerformanceRow[];
   const activeServices = (services ?? []).filter(
     (s: { is_active: boolean }) => s.is_active
   );
@@ -140,7 +153,8 @@ export default async function EngagementsPage({
             {engagements.map((engagement: EngagementListRow) => {
               const financials = computeEngagementFinancials(
                 engagement,
-                invoices
+                invoices,
+                metrics
               );
               return (
                 <TableRow key={engagement.id}>

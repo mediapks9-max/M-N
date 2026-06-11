@@ -31,11 +31,12 @@ import {
   ARTICLE_STATUS_CLASSES,
   ENGAGEMENT_STATUS_CLASSES,
   INVOICE_STATUS_CLASSES,
-  metricFieldsForService,
+  metricFieldsFor,
 } from "@/lib/domain";
 import {
   computeEngagementFinancials,
   type InvoiceFinancialRow,
+  type MetricPerformanceRow,
 } from "@/lib/finance";
 import { formatCurrency, formatDate } from "@/lib/format";
 import { getOrgContext } from "@/lib/org";
@@ -127,7 +128,7 @@ export default async function EngagementPage({
       .order("created_at", { ascending: false }),
     supabase
       .from("clients")
-      .select("id, name")
+      .select("id, name, type")
       .eq("organization_id", org.id)
       .order("name"),
     supabase
@@ -136,6 +137,33 @@ export default async function EngagementPage({
       .eq("organization_id", org.id)
       .order("sort_order"),
   ]);
+
+  const typedMetrics = (metrics ?? []) as EngagementMetric[];
+  const performanceRows: MetricPerformanceRow[] = typedMetrics.map(
+    (metric: EngagementMetric): MetricPerformanceRow => ({
+      engagement_id: metric.engagement_id,
+      leads: metric.leads,
+      approved_leads: metric.approved_leads,
+      conversions: metric.conversions,
+      clicks: metric.clicks,
+      revenue_generated: metric.revenue_generated,
+      spend: metric.spend,
+    })
+  );
+
+  const allClients = (clients ?? []) as {
+    id: string;
+    name: string;
+    type: string;
+  }[];
+  const suppliers = allClients.filter(
+    (client: { type: string }) =>
+      client.type === "supplier" || client.type === "both"
+  );
+  const supplierName =
+    allClients.find(
+      (client: { id: string }) => client.id === engagement.supplier_id
+    )?.name ?? null;
 
   const financials = computeEngagementFinancials(
     engagement,
@@ -146,7 +174,8 @@ export default async function EngagementPage({
         status: invoice.status,
         total: invoice.total,
       })
-    )
+    ),
+    performanceRows
   );
 
   return (
@@ -175,7 +204,11 @@ export default async function EngagementPage({
             <p className="text-xs text-muted-foreground">
               Revenue{" "}
               <Badge variant="outline" className="ml-1 text-[10px]">
-                {financials.mode === "auto" ? "computed" : "manual"}
+                {financials.mode === "auto"
+                  ? "computed"
+                  : financials.mode === "performance"
+                    ? "performance"
+                    : "manual"}
               </Badge>
             </p>
             <p className="font-semibold">
@@ -223,8 +256,19 @@ export default async function EngagementPage({
         <OverviewForm
           orgId={org.id}
           engagement={engagement}
-          clients={clients ?? []}
+          clients={allClients.map(
+            (client: { id: string; name: string }) => ({
+              id: client.id,
+              name: client.name,
+            })
+          )}
           services={services ?? []}
+          suppliers={suppliers.map(
+            (supplier: { id: string; name: string }) => ({
+              id: supplier.id,
+              name: supplier.name,
+            })
+          )}
         />
       ) : null}
 
@@ -233,8 +277,20 @@ export default async function EngagementPage({
           orgId={org.id}
           engagementId={id}
           engagementName={engagement.name}
-          metrics={(metrics ?? []) as EngagementMetric[]}
-          fields={metricFieldsForService(engagement.service?.slug ?? "")}
+          metrics={typedMetrics}
+          fields={metricFieldsFor(
+            engagement.service?.slug ?? "",
+            engagement.pricing_model
+          )}
+          pricing={{
+            pricing_model: engagement.pricing_model,
+            unit_rate: engagement.unit_rate,
+            rev_share_percent: engagement.rev_share_percent,
+            payout_percent: engagement.payout_percent,
+          }}
+          currency={engagement.budget_currency}
+          supplierId={engagement.supplier_id}
+          supplierName={supplierName}
         />
       ) : null}
 

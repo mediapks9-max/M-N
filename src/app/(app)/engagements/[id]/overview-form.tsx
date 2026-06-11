@@ -25,8 +25,15 @@ import type {
   Engagement,
   EngagementStatus,
   FinancialMode,
+  PricingModel,
 } from "@/lib/database.types";
-import { CURRENCIES, ENGAGEMENT_STATUSES } from "@/lib/domain";
+import {
+  CURRENCIES,
+  ENGAGEMENT_STATUSES,
+  PERFORMANCE_PRICING_MODELS,
+  PRICING_MODELS,
+  PRICING_MODEL_LABELS,
+} from "@/lib/domain";
 import {
   deleteEngagementAction,
   updateEngagementAction,
@@ -43,13 +50,18 @@ interface OverviewFormProps {
   engagement: Engagement;
   clients: SelectOption[];
   services: SelectOption[];
+  /** Clients of type supplier/both — candidates for revenue-share payouts. */
+  suppliers: SelectOption[];
 }
+
+const NONE = "none";
 
 export function OverviewForm({
   orgId,
   engagement,
   clients,
   services,
+  suppliers,
 }: OverviewFormProps) {
   const [form, setForm] = useState({
     client_id: engagement.client_id,
@@ -70,6 +82,18 @@ export function OverviewForm({
         : "",
     manual_cost:
       engagement.manual_cost !== null ? String(engagement.manual_cost) : "",
+    pricing_model: engagement.pricing_model as PricingModel,
+    unit_rate:
+      engagement.unit_rate !== null ? String(engagement.unit_rate) : "",
+    rev_share_percent:
+      engagement.rev_share_percent !== null
+        ? String(engagement.rev_share_percent)
+        : "",
+    supplier_id: engagement.supplier_id ?? NONE,
+    payout_percent:
+      engagement.payout_percent !== null
+        ? String(engagement.payout_percent)
+        : "",
     notes: engagement.notes,
   });
   const [isPending, startTransition] = useTransition();
@@ -93,6 +117,15 @@ export function OverviewForm({
         : null,
       manual_cost: form.manual_cost
         ? Number.parseFloat(form.manual_cost)
+        : null,
+      pricing_model: form.pricing_model,
+      unit_rate: form.unit_rate ? Number.parseFloat(form.unit_rate) : null,
+      rev_share_percent: form.rev_share_percent
+        ? Number.parseFloat(form.rev_share_percent)
+        : null,
+      supplier_id: form.supplier_id === NONE ? null : form.supplier_id,
+      payout_percent: form.payout_percent
+        ? Number.parseFloat(form.payout_percent)
         : null,
       notes: form.notes,
     };
@@ -285,22 +318,157 @@ export function OverviewForm({
 
       <Card>
         <CardHeader>
-          <CardTitle>Financial mode</CardTitle>
+          <CardTitle>Pricing & payout</CardTitle>
           <CardDescription>
-            <strong>Auto</strong> computes revenue and cost from linked
-            invoices (sent, paid or overdue). <strong>Manual</strong> lets you
-            override both numbers yourself.
+            How this engagement earns from the client, and what share (if any)
+            a supplier/publisher receives.
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
-          <div className="flex gap-2">
+          <div className="grid gap-4 sm:grid-cols-3">
+            <div className="space-y-2">
+              <Label>Pricing model</Label>
+              <Select
+                value={form.pricing_model}
+                onValueChange={(value: string) =>
+                  setForm({ ...form, pricing_model: value as PricingModel })
+                }
+              >
+                <SelectTrigger>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  {PRICING_MODELS.map((model: PricingModel) => (
+                    <SelectItem key={model} value={model}>
+                      {PRICING_MODEL_LABELS[model]}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            {form.pricing_model === "cpl" ||
+            form.pricing_model === "cpa" ||
+            form.pricing_model === "cpc" ? (
+              <div className="space-y-2">
+                <Label htmlFor="ovRate">
+                  Rate per{" "}
+                  {form.pricing_model === "cpl"
+                    ? "lead"
+                    : form.pricing_model === "cpa"
+                      ? "acquisition"
+                      : "click"}{" "}
+                  ({form.budget_currency})
+                </Label>
+                <Input
+                  id="ovRate"
+                  type="number"
+                  step="0.01"
+                  min="0"
+                  value={form.unit_rate}
+                  onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
+                    setForm({ ...form, unit_rate: e.target.value })
+                  }
+                />
+              </div>
+            ) : null}
+            {form.pricing_model === "rev_share" ? (
+              <div className="space-y-2">
+                <Label htmlFor="ovRevShare">Revenue share %</Label>
+                <Input
+                  id="ovRevShare"
+                  type="number"
+                  step="0.1"
+                  min="0"
+                  max="100"
+                  value={form.rev_share_percent}
+                  onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
+                    setForm({ ...form, rev_share_percent: e.target.value })
+                  }
+                />
+              </div>
+            ) : null}
+          </div>
+          <div className="grid gap-4 sm:grid-cols-3">
+            <div className="space-y-2">
+              <Label>Supplier / publisher</Label>
+              <Select
+                value={form.supplier_id}
+                onValueChange={(value: string) =>
+                  setForm({ ...form, supplier_id: value })
+                }
+              >
+                <SelectTrigger>
+                  <SelectValue placeholder="None" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value={NONE}>None</SelectItem>
+                  {suppliers.map((supplier: SelectOption) => (
+                    <SelectItem key={supplier.id} value={supplier.id}>
+                      {supplier.name}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              <p className="text-xs text-muted-foreground">
+                Only clients marked as supplier appear here.
+              </p>
+            </div>
+            {form.supplier_id !== NONE ? (
+              <div className="space-y-2">
+                <Label htmlFor="ovPayout">Supplier payout % of revenue</Label>
+                <Input
+                  id="ovPayout"
+                  type="number"
+                  step="0.1"
+                  min="0"
+                  max="100"
+                  placeholder="e.g. 80"
+                  value={form.payout_percent}
+                  onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
+                    setForm({ ...form, payout_percent: e.target.value })
+                  }
+                />
+              </div>
+            ) : null}
+          </div>
+        </CardContent>
+      </Card>
+
+      <Card>
+        <CardHeader>
+          <CardTitle>Financial mode</CardTitle>
+          <CardDescription>
+            <strong>Auto</strong> computes revenue and cost from linked
+            invoices (sent, paid or overdue). <strong>Performance</strong>{" "}
+            computes earned revenue from the metrics × pricing model, with
+            supplier payout and media spend as cost. <strong>Manual</strong>{" "}
+            lets you override both numbers yourself.
+          </CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          <div className="flex flex-wrap gap-2">
             <Button
               type="button"
               variant={form.financial_mode === "auto" ? "default" : "outline"}
               size="sm"
               onClick={() => setForm({ ...form, financial_mode: "auto" })}
             >
-              Auto (computed)
+              Auto (invoices)
+            </Button>
+            <Button
+              type="button"
+              variant={
+                form.financial_mode === "performance" ? "default" : "outline"
+              }
+              size="sm"
+              disabled={
+                !PERFORMANCE_PRICING_MODELS.includes(form.pricing_model)
+              }
+              onClick={() =>
+                setForm({ ...form, financial_mode: "performance" })
+              }
+            >
+              Performance (metrics)
             </Button>
             <Button
               type="button"
@@ -313,6 +481,12 @@ export function OverviewForm({
               Manual
             </Button>
           </div>
+          {!PERFORMANCE_PRICING_MODELS.includes(form.pricing_model) ? (
+            <p className="text-xs text-muted-foreground">
+              Performance mode needs a CPL, CPA, CPC or revenue-share pricing
+              model.
+            </p>
+          ) : null}
           {form.financial_mode === "manual" ? (
             <div className="grid gap-4 sm:grid-cols-2">
               <div className="space-y-2">

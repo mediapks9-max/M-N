@@ -55,6 +55,13 @@ interface ItemRow {
   unit_price: string;
 }
 
+export interface InvoicePrefill {
+  direction?: string;
+  clientId?: string;
+  amount?: string;
+  description?: string;
+}
+
 interface InvoiceFormProps {
   orgId: string;
   clients: ClientOption[];
@@ -64,19 +71,33 @@ interface InvoiceFormProps {
   items?: InvoiceItem[];
   /** Preselected engagement (from ?engagement= query param). */
   preselectedEngagementId?: string;
+  /** Optional prefill (e.g. supplier payout invoices). */
+  prefill?: InvoicePrefill;
 }
 
 const NONE = "none";
 
-function toItemRows(items: InvoiceItem[] | undefined): ItemRow[] {
-  if (!items || items.length === 0) {
-    return [{ description: "", quantity: "1", unit_price: "" }];
+function toItemRows(
+  items: InvoiceItem[] | undefined,
+  prefill: InvoicePrefill | undefined
+): ItemRow[] {
+  if (items && items.length > 0) {
+    return items.map((item: InvoiceItem) => ({
+      description: item.description,
+      quantity: String(item.quantity),
+      unit_price: String(item.unit_price),
+    }));
   }
-  return items.map((item: InvoiceItem) => ({
-    description: item.description,
-    quantity: String(item.quantity),
-    unit_price: String(item.unit_price),
-  }));
+  if (prefill?.amount) {
+    return [
+      {
+        description: prefill.description ?? "",
+        quantity: "1",
+        unit_price: prefill.amount,
+      },
+    ];
+  }
+  return [{ description: "", quantity: "1", unit_price: "" }];
 }
 
 export function InvoiceForm({
@@ -86,6 +107,7 @@ export function InvoiceForm({
   invoice,
   items,
   preselectedEngagementId,
+  prefill,
 }: InvoiceFormProps) {
   const router = useRouter();
   const preselectedEngagement = engagements.find(
@@ -93,10 +115,14 @@ export function InvoiceForm({
   );
 
   const [direction, setDirection] = useState<InvoiceDirection>(
-    invoice?.direction ?? "outbound"
+    invoice?.direction ??
+      (prefill?.direction === "inbound" ? "inbound" : "outbound")
   );
   const [clientId, setClientId] = useState(
-    invoice?.client_id ?? preselectedEngagement?.client_id ?? ""
+    invoice?.client_id ??
+      prefill?.clientId ??
+      preselectedEngagement?.client_id ??
+      ""
   );
   const [engagementId, setEngagementId] = useState(
     invoice?.engagement_id ?? preselectedEngagement?.id ?? NONE
@@ -113,11 +139,15 @@ export function InvoiceForm({
   const [taxAmount, setTaxAmount] = useState(
     invoice ? String(invoice.tax_amount) : "0"
   );
-  const [itemRows, setItemRows] = useState<ItemRow[]>(toItemRows(items));
+  const [itemRows, setItemRows] = useState<ItemRow[]>(
+    toItemRows(items, prefill)
+  );
   const [isPending, startTransition] = useTransition();
 
+  // Keep the linked engagement selectable even when the bill-to party is a
+  // supplier (payout invoices) rather than the engagement's own client.
   const clientEngagements = engagements.filter(
-    (e: EngagementOption) => e.client_id === clientId
+    (e: EngagementOption) => e.client_id === clientId || e.id === engagementId
   );
 
   const subtotal = useMemo(

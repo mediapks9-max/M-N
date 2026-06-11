@@ -15,8 +15,22 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import type { InvoiceDirection, InvoiceStatus } from "@/lib/database.types";
-import { FINANCIAL_INVOICE_STATUSES } from "@/lib/domain";
+import type {
+  InvoiceDirection,
+  InvoiceStatus,
+  PricingModel,
+} from "@/lib/database.types";
+import {
+  FINANCIAL_INVOICE_STATUSES,
+  PERFORMANCE_PRICING_MODELS,
+  PRICING_MODEL_LABELS,
+} from "@/lib/domain";
+import {
+  metricEarnedRevenue,
+  metricPayout,
+  type MetricPerformanceRow,
+  type PerformancePricing,
+} from "@/lib/finance";
 import { formatCurrency } from "@/lib/format";
 import { getOrgContext } from "@/lib/org";
 import { createClient } from "@/lib/supabase/server";
@@ -88,15 +102,34 @@ export default async function ReportsPage({ searchParams }: ReportsPageProps) {
   const supabase = await createClient();
 
   // All financially-relevant invoices (sent/paid/overdue) for the org.
-  const { data: rows } = await supabase
-    .from("invoices")
-    .select(
-      "issue_date, direction, status, total, currency, client:clients(id, name), engagement:engagements(id, name, service:services(name, color))"
-    )
-    .eq("organization_id", org.id)
-    .in("status", FINANCIAL_INVOICE_STATUSES);
+  const [{ data: rows }, { data: metricRows }] = await Promise.all([
+    supabase
+      .from("invoices")
+      .select(
+        "issue_date, direction, status, total, currency, client:clients(id, name), engagement:engagements(id, name, service:services(name, color))"
+      )
+      .eq("organization_id", org.id)
+      .in("status", FINANCIAL_INVOICE_STATUSES),
+    supabase
+      .from("engagement_metrics")
+      .select(
+        "engagement_id, period_start, leads, approved_leads, conversions, clicks, revenue_generated, spend, engagement:engagements(id, name, budget_currency, pricing_model, unit_rate, rev_share_percent, payout_percent, client:clients(name))"
+      )
+      .eq("organization_id", org.id),
+  ]);
 
   const allInvoices = (rows ?? []) as unknown as ReportInvoiceRow[];
+
+  type PerfMetricRow = MetricPerformanceRow & {
+    period_start: string;
+    engagement: ({
+      id: string;
+      name: string;
+      budget_currency: string;
+      client: { name: string } | null;
+    } & PerformancePricing) | null;
+  };
+  const allMetrics = (metricRows ?? []) as unknown as PerfMetricRow[];
 
   const currentYear = new Date().getFullYear();
   const years = [
@@ -202,6 +235,44 @@ export default async function ReportsPage({ searchParams }: ReportsPageProps) {
   );
 
   const money = (amount: number): string => formatCurrency(amount, currency);
+
+  // Performance deals: earned revenue / payout / spend / margin per
+  // engagement, from metric periods starting in the selected year.
+  interface PerfAggregate {
+    name: string;
+    clientName: string;
+    model: PricingModel;
+    earned: number;
+    payout: number;
+    spend: number;
+  }
+  const perfByEngagement = new Map<string, PerfAggregate>();
+  for (const metric of allMetrics) {
+    const engagement = metric.engagement;
+    if (!engagement) continue;
+    if (!PERFORMANCE_PRICING_MODELS.includes(engagement.pricing_model)) {
+      continue;
+    }
+    if (new Date(metric.period_start).getFullYear() !== year) continue;
+    if (engagement.budget_currency !== currency) continue;
+
+    const entry = perfByEngagement.get(engagement.id) ?? {
+      name: engagement.name,
+      clientName: engagement.client?.name ?? "—",
+      model: engagement.pricing_model,
+      earned: 0,
+      payout: 0,
+      spend: 0,
+    };
+    entry.earned += metricEarnedRevenue(engagement, metric);
+    entry.payout += metricPayout(engagement, metric);
+    entry.spend += metric.spend ?? 0;
+    perfByEngagement.set(engagement.id, entry);
+  }
+  const perfRows = [...perfByEngagement.values()].sort(
+    (a: PerfAggregate, b: PerfAggregate) =>
+      b.earned - b.payout - b.spend - (a.earned - a.payout - a.spend)
+  );
 
   return (
     <div className="space-y-6">
@@ -491,6 +562,90 @@ export default async function ReportsPage({ searchParams }: ReportsPageProps) {
           </Card>
         </>
       )}
+
+      {perfRows.length > 0 ? (
+        <Card>
+          <CardHeader className="flex-row items-center justify-between space-y-0">
+            <CardTitle className="text-base">
+              Performance deals {year} ({currency}) — earned from metrics
+            </CardTitle>
+            <CsvButton
+              filename={`performance-${year}-${currency}.csv`}
+              headers={[
+                "Engagement",
+                "Client",
+                "Model",
+                "Earned",
+                "Payout",
+                "Spend",
+                "Margin",
+              ]}
+              rows={perfRows.map((row: (typeof perfRows)[number]) => [
+                row.name,
+                row.clientName,
+                PRICING_MODEL_LABELS[row.model],
+                row.earned,
+                row.payout,
+                row.spend,
+                row.earned - row.payout - row.spend,
+              ])}
+            />
+          </CardHeader>
+          <CardContent>
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>Engagement</TableHead>
+                  <TableHead>Client</TableHead>
+                  <TableHead>Model</TableHead>
+                  <TableHead className="text-right">Earned</TableHead>
+                  <TableHead className="text-right">Payout</TableHead>
+                  <TableHead className="text-right">Spend</TableHead>
+                  <TableHead className="text-right">Margin</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {perfRows.map((row: (typeof perfRows)[number]) => {
+                  const margin = row.earned - row.payout - row.spend;
+                  return (
+                    <TableRow key={`${row.name}-${row.clientName}`}>
+                      <TableCell className="font-medium">{row.name}</TableCell>
+                      <TableCell className="text-muted-foreground">
+                        {row.clientName}
+                      </TableCell>
+                      <TableCell className="text-muted-foreground">
+                        {PRICING_MODEL_LABELS[row.model]}
+                      </TableCell>
+                      <TableCell className="text-right">
+                        {money(row.earned)}
+                      </TableCell>
+                      <TableCell className="text-right">
+                        {money(row.payout)}
+                      </TableCell>
+                      <TableCell className="text-right">
+                        {money(row.spend)}
+                      </TableCell>
+                      <TableCell
+                        className={cn(
+                          "text-right font-medium",
+                          margin < 0 && "text-red-600"
+                        )}
+                      >
+                        {money(margin)}
+                      </TableCell>
+                    </TableRow>
+                  );
+                })}
+              </TableBody>
+            </Table>
+            <p className="mt-3 text-xs text-muted-foreground">
+              Earned revenue is computed from logged metrics × the
+              engagement&apos;s pricing model; it may differ from invoiced
+              amounts above until everything is billed.
+            </p>
+          </CardContent>
+        </Card>
+      ) : null}
     </div>
   );
 }

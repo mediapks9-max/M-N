@@ -24,8 +24,13 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
-import type { EngagementStatus } from "@/lib/database.types";
-import { CURRENCIES, ENGAGEMENT_STATUSES } from "@/lib/domain";
+import type { EngagementStatus, PricingModel } from "@/lib/database.types";
+import {
+  CURRENCIES,
+  ENGAGEMENT_STATUSES,
+  PRICING_MODELS,
+  PRICING_MODEL_LABELS,
+} from "@/lib/domain";
 import {
   createEngagementAction,
   type EngagementCreateInput,
@@ -51,6 +56,9 @@ const EMPTY_FORM = {
   end_date: "",
   budget_amount: "",
   budget_currency: "USD",
+  pricing_model: "fixed" as PricingModel,
+  unit_rate: "",
+  rev_share_percent: "",
   notes: "",
 };
 
@@ -77,6 +85,11 @@ export function EngagementCreateDialog({
         ? Number.parseFloat(form.budget_amount)
         : null,
       budget_currency: form.budget_currency,
+      pricing_model: form.pricing_model,
+      unit_rate: form.unit_rate ? Number.parseFloat(form.unit_rate) : null,
+      rev_share_percent: form.rev_share_percent
+        ? Number.parseFloat(form.rev_share_percent)
+        : null,
       notes: form.notes,
     };
     startTransition(async () => {
@@ -243,6 +256,70 @@ export function EngagementCreateDialog({
                   </SelectContent>
                 </Select>
               </div>
+            </div>
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label>Pricing model</Label>
+                <Select
+                  value={form.pricing_model}
+                  onValueChange={(value: string) =>
+                    setForm({ ...form, pricing_model: value as PricingModel })
+                  }
+                >
+                  <SelectTrigger>
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {PRICING_MODELS.map((model: PricingModel) => (
+                      <SelectItem key={model} value={model}>
+                        {PRICING_MODEL_LABELS[model]}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+              {form.pricing_model === "rev_share" ? (
+                <div className="space-y-2">
+                  <Label htmlFor="engRevShare">Revenue share %</Label>
+                  <Input
+                    id="engRevShare"
+                    type="number"
+                    step="0.1"
+                    min="0"
+                    max="100"
+                    placeholder="e.g. 20"
+                    value={form.rev_share_percent}
+                    onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
+                      setForm({ ...form, rev_share_percent: e.target.value })
+                    }
+                  />
+                </div>
+              ) : null}
+              {form.pricing_model === "cpl" ||
+              form.pricing_model === "cpa" ||
+              form.pricing_model === "cpc" ? (
+                <div className="space-y-2">
+                  <Label htmlFor="engRate">
+                    Rate per{" "}
+                    {form.pricing_model === "cpl"
+                      ? "lead"
+                      : form.pricing_model === "cpa"
+                        ? "acquisition"
+                        : "click"}
+                  </Label>
+                  <Input
+                    id="engRate"
+                    type="number"
+                    step="0.01"
+                    min="0"
+                    placeholder="e.g. 100"
+                    value={form.unit_rate}
+                    onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
+                      setForm({ ...form, unit_rate: e.target.value })
+                    }
+                  />
+                </div>
+              ) : null}
             </div>
             <div className="space-y-2">
               <Label htmlFor="engNotes">Notes</Label>

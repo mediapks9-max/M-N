@@ -4,7 +4,11 @@ import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 
 import { logActivity } from "@/lib/activity";
-import type { EngagementStatus, FinancialMode } from "@/lib/database.types";
+import type {
+  EngagementStatus,
+  FinancialMode,
+  PricingModel,
+} from "@/lib/database.types";
 import { createClient } from "@/lib/supabase/server";
 
 export interface ActionResult {
@@ -31,6 +35,9 @@ export interface EngagementCreateInput {
   end_date: string | null;
   budget_amount: number | null;
   budget_currency: string;
+  pricing_model: PricingModel;
+  unit_rate: number | null;
+  rev_share_percent: number | null;
   notes: string;
 }
 
@@ -59,6 +66,9 @@ export async function createEngagementAction(
       end_date: input.end_date,
       budget_amount: input.budget_amount,
       budget_currency: input.budget_currency,
+      pricing_model: input.pricing_model,
+      unit_rate: input.unit_rate,
+      rev_share_percent: input.rev_share_percent,
       notes: input.notes.trim(),
     })
     .select("id, name")
@@ -84,6 +94,8 @@ export interface EngagementUpdateInput extends EngagementCreateInput {
   financial_mode: FinancialMode;
   manual_revenue: number | null;
   manual_cost: number | null;
+  supplier_id: string | null;
+  payout_percent: number | null;
 }
 
 export async function updateEngagementAction(
@@ -115,6 +127,11 @@ export async function updateEngagementAction(
       end_date: input.end_date,
       budget_amount: input.budget_amount,
       budget_currency: input.budget_currency,
+      pricing_model: input.pricing_model,
+      unit_rate: input.unit_rate,
+      rev_share_percent: input.rev_share_percent,
+      supplier_id: input.supplier_id,
+      payout_percent: input.payout_percent,
       financial_mode: input.financial_mode,
       manual_revenue: input.manual_revenue,
       manual_cost: input.manual_cost,
@@ -188,6 +205,7 @@ export interface MetricInput {
   impressions: number | null;
   clicks: number | null;
   leads: number | null;
+  approved_leads: number | null;
   conversions: number | null;
   sessions: number | null;
   organic_traffic: number | null;
@@ -221,6 +239,7 @@ export async function addMetricAction(
       impressions: input.impressions,
       clicks: input.clicks,
       leads: input.leads,
+      approved_leads: input.approved_leads,
       conversions: input.conversions,
       sessions: input.sessions,
       organic_traffic: input.organic_traffic,

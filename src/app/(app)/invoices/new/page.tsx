@@ -5,13 +5,20 @@ import { InvoiceForm } from "../invoice-form";
 export const metadata = { title: "New invoice" };
 
 interface NewInvoicePageProps {
-  searchParams: Promise<{ engagement?: string }>;
+  searchParams: Promise<{
+    engagement?: string;
+    direction?: string;
+    client?: string;
+    amount?: string;
+    description?: string;
+  }>;
 }
 
 export default async function NewInvoicePage({
   searchParams,
 }: NewInvoicePageProps) {
-  const { engagement } = await searchParams;
+  const { engagement, direction, client, amount, description } =
+    await searchParams;
   const { org } = await getOrgContext();
   const supabase = await createClient();
 
@@ -36,6 +43,7 @@ export default async function NewInvoicePage({
         clients={clients ?? []}
         engagements={engagements ?? []}
         preselectedEngagementId={engagement}
+        prefill={{ direction, clientId: client, amount, description }}
       />
     </div>
   );

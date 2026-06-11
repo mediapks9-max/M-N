@@ -41,7 +41,15 @@ export type EngagementStatus =
   | "completed"
   | "cancelled";
 
-export type FinancialMode = "auto" | "manual";
+export type FinancialMode = "auto" | "manual" | "performance";
+
+export type PricingModel =
+  | "fixed"
+  | "retainer"
+  | "cpl"
+  | "cpa"
+  | "cpc"
+  | "rev_share";
 
 export type DeliverableType =
   | "article"
@@ -361,6 +369,11 @@ export interface Database {
           financial_mode: FinancialMode;
           manual_revenue: number | null;
           manual_cost: number | null;
+          pricing_model: PricingModel;
+          unit_rate: number | null;
+          rev_share_percent: number | null;
+          supplier_id: string | null;
+          payout_percent: number | null;
           notes: string;
           created_at: string;
         };
@@ -378,6 +391,11 @@ export interface Database {
           financial_mode?: FinancialMode;
           manual_revenue?: number | null;
           manual_cost?: number | null;
+          pricing_model?: PricingModel;
+          unit_rate?: number | null;
+          rev_share_percent?: number | null;
+          supplier_id?: string | null;
+          payout_percent?: number | null;
           notes?: string;
           created_at?: string;
         };
@@ -395,6 +413,11 @@ export interface Database {
           financial_mode?: FinancialMode;
           manual_revenue?: number | null;
           manual_cost?: number | null;
+          pricing_model?: PricingModel;
+          unit_rate?: number | null;
+          rev_share_percent?: number | null;
+          supplier_id?: string | null;
+          payout_percent?: number | null;
           notes?: string;
           created_at?: string;
         };
@@ -433,6 +456,7 @@ export interface Database {
           impressions: number | null;
           clicks: number | null;
           leads: number | null;
+          approved_leads: number | null;
           conversions: number | null;
           sessions: number | null;
           organic_traffic: number | null;
@@ -450,6 +474,7 @@ export interface Database {
           impressions?: number | null;
           clicks?: number | null;
           leads?: number | null;
+          approved_leads?: number | null;
           conversions?: number | null;
           sessions?: number | null;
           organic_traffic?: number | null;
@@ -467,6 +492,7 @@ export interface Database {
           impressions?: number | null;
           clicks?: number | null;
           leads?: number | null;
+          approved_leads?: number | null;
           conversions?: number | null;
           sessions?: number | null;
           organic_traffic?: number | null;

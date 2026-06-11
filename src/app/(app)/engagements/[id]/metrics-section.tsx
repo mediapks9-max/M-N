@@ -1,7 +1,8 @@
 "use client";
 
 import { useState, useTransition } from "react";
-import { Plus, Trash2 } from "lucide-react";
+import Link from "next/link";
+import { Plus, Receipt, Trash2 } from "lucide-react";
 import { toast } from "sonner";
 
 import { Button } from "@/components/ui/button";
@@ -25,9 +26,17 @@ import {
 import type { EngagementMetric } from "@/lib/database.types";
 import {
   METRIC_FIELD_LABELS,
+  PERFORMANCE_PRICING_MODELS,
   type MetricField,
 } from "@/lib/domain";
-import { formatDate, formatNumber } from "@/lib/format";
+import {
+  metricEarnedRevenue,
+  metricPayout,
+  performanceTotals,
+  type MetricPerformanceRow,
+  type PerformancePricing,
+} from "@/lib/finance";
+import { formatCurrency, formatDate, formatNumber } from "@/lib/format";
 import { addMetricAction, deleteMetricAction, type MetricInput } from "../actions";
 
 interface MetricsSectionProps {
@@ -35,8 +44,12 @@ interface MetricsSectionProps {
   engagementId: string;
   engagementName: string;
   metrics: EngagementMetric[];
-  /** Fields relevant to this engagement's service. */
+  /** Fields relevant to this engagement's service + pricing model. */
   fields: MetricField[];
+  pricing: PerformancePricing;
+  currency: string;
+  supplierId: string | null;
+  supplierName: string | null;
 }
 
 const EMPTY_VALUES: Record<MetricField, string> = {
@@ -44,6 +57,7 @@ const EMPTY_VALUES: Record<MetricField, string> = {
   impressions: "",
   clicks: "",
   leads: "",
+  approved_leads: "",
   conversions: "",
   sessions: "",
   organic_traffic: "",
@@ -56,6 +70,10 @@ export function MetricsSection({
   engagementName,
   metrics,
   fields,
+  pricing,
+  currency,
+  supplierId,
+  supplierName,
 }: MetricsSectionProps) {
   const [periodStart, setPeriodStart] = useState("");
   const [periodEnd, setPeriodEnd] = useState("");
@@ -63,27 +81,47 @@ export function MetricsSection({
   const [notes, setNotes] = useState("");
   const [isPending, startTransition] = useTransition();
 
+  const isPerformance = PERFORMANCE_PRICING_MODELS.includes(
+    pricing.pricing_model
+  );
+  const performanceRows: MetricPerformanceRow[] = metrics.map(
+    (metric: EngagementMetric): MetricPerformanceRow => ({
+      engagement_id: metric.engagement_id,
+      leads: metric.leads,
+      approved_leads: metric.approved_leads,
+      conversions: metric.conversions,
+      clicks: metric.clicks,
+      revenue_generated: metric.revenue_generated,
+      spend: metric.spend,
+    })
+  );
+  const totals = performanceTotals(pricing, performanceRows);
+  const hasPayout = supplierId !== null && (pricing.payout_percent ?? 0) > 0;
+
+  const payoutInvoiceHref = hasPayout
+    ? `/invoices/new?engagement=${engagementId}&direction=inbound&client=${supplierId}&amount=${totals.payout.toFixed(2)}&description=${encodeURIComponent(
+        `Publisher payout — ${engagementName} (${pricing.payout_percent}% of earned revenue)`
+      )}`
+    : null;
+
+  function parse(field: MetricField): number | null {
+    return values[field] ? Number.parseFloat(values[field]) : null;
+  }
+
   function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
     const input: MetricInput = {
       period_start: periodStart,
       period_end: periodEnd,
-      spend: values.spend ? Number.parseFloat(values.spend) : null,
-      impressions: values.impressions
-        ? Number.parseFloat(values.impressions)
-        : null,
-      clicks: values.clicks ? Number.parseFloat(values.clicks) : null,
-      leads: values.leads ? Number.parseFloat(values.leads) : null,
-      conversions: values.conversions
-        ? Number.parseFloat(values.conversions)
-        : null,
-      sessions: values.sessions ? Number.parseFloat(values.sessions) : null,
-      organic_traffic: values.organic_traffic
-        ? Number.parseFloat(values.organic_traffic)
-        : null,
-      revenue_generated: values.revenue_generated
-        ? Number.parseFloat(values.revenue_generated)
-        : null,
+      spend: parse("spend"),
+      impressions: parse("impressions"),
+      clicks: parse("clicks"),
+      leads: parse("leads"),
+      approved_leads: parse("approved_leads"),
+      conversions: parse("conversions"),
+      sessions: parse("sessions"),
+      organic_traffic: parse("organic_traffic"),
+      revenue_generated: parse("revenue_generated"),
       notes,
     };
     startTransition(async () => {
@@ -123,12 +161,57 @@ export function MetricsSection({
 
   return (
     <div className="space-y-6">
+      {isPerformance ? (
+        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+          <div className="rounded-xl border bg-card p-4 shadow-sm">
+            <p className="text-xs text-muted-foreground">Earned revenue</p>
+            <p className="text-xl font-bold">
+              {formatCurrency(totals.earned, currency)}
+            </p>
+          </div>
+          <div className="rounded-xl border bg-card p-4 shadow-sm">
+            <p className="text-xs text-muted-foreground">
+              Supplier payout
+              {supplierName ? ` (${supplierName})` : ""}
+            </p>
+            <p className="text-xl font-bold">
+              {formatCurrency(totals.payout, currency)}
+            </p>
+          </div>
+          <div className="rounded-xl border bg-card p-4 shadow-sm">
+            <p className="text-xs text-muted-foreground">Media spend</p>
+            <p className="text-xl font-bold">
+              {formatCurrency(totals.spend, currency)}
+            </p>
+          </div>
+          <div className="rounded-xl border bg-card p-4 shadow-sm">
+            <p className="text-xs text-muted-foreground">Margin</p>
+            <p
+              className={`text-xl font-bold ${totals.margin < 0 ? "text-red-600" : ""}`}
+            >
+              {formatCurrency(totals.margin, currency)}
+            </p>
+          </div>
+        </div>
+      ) : null}
+
+      {payoutInvoiceHref && totals.payout > 0 ? (
+        <div className="flex justify-end">
+          <Button variant="outline" size="sm" asChild>
+            <Link href={payoutInvoiceHref}>
+              <Receipt className="h-3.5 w-3.5" />
+              Create payout invoice ({formatCurrency(totals.payout, currency)})
+            </Link>
+          </Button>
+        </div>
+      ) : null}
+
       <Card>
         <CardHeader>
           <CardTitle>Add period</CardTitle>
           <CardDescription>
             Manual KPI entry for a reporting period. Showing the fields
-            relevant to this engagement&apos;s service.
+            relevant to this engagement&apos;s service and pricing model.
           </CardDescription>
         </CardHeader>
         <CardContent>
@@ -210,12 +293,20 @@ export function MetricsSection({
                   {METRIC_FIELD_LABELS[field]}
                 </TableHead>
               ))}
+              {isPerformance ? (
+                <>
+                  <TableHead className="text-right">Earned</TableHead>
+                  {hasPayout ? (
+                    <TableHead className="text-right">Payout</TableHead>
+                  ) : null}
+                </>
+              ) : null}
               <TableHead>Notes</TableHead>
               <TableHead className="w-12" />
             </TableRow>
           </TableHeader>
           <TableBody>
-            {metrics.map((metric: EngagementMetric) => (
+            {metrics.map((metric: EngagementMetric, index: number) => (
               <TableRow key={metric.id}>
                 <TableCell className="whitespace-nowrap font-medium">
                   {formatDate(metric.period_start)} –{" "}
@@ -226,6 +317,24 @@ export function MetricsSection({
                     {formatNumber(metric[field])}
                   </TableCell>
                 ))}
+                {isPerformance ? (
+                  <>
+                    <TableCell className="text-right font-medium">
+                      {formatCurrency(
+                        metricEarnedRevenue(pricing, performanceRows[index]),
+                        currency
+                      )}
+                    </TableCell>
+                    {hasPayout ? (
+                      <TableCell className="text-right">
+                        {formatCurrency(
+                          metricPayout(pricing, performanceRows[index]),
+                          currency
+                        )}
+                      </TableCell>
+                    ) : null}
+                  </>
+                ) : null}
                 <TableCell className="max-w-48 truncate text-muted-foreground">
                   {metric.notes || "—"}
                 </TableCell>

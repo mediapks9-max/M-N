@@ -5,7 +5,33 @@ import type {
   DeliverableType,
   EngagementStatus,
   InvoiceStatus,
+  PricingModel,
 } from "@/lib/database.types";
+
+export const PRICING_MODELS: PricingModel[] = [
+  "fixed",
+  "retainer",
+  "cpl",
+  "cpa",
+  "cpc",
+  "rev_share",
+];
+
+export const PRICING_MODEL_LABELS: Record<PricingModel, string> = {
+  fixed: "Fixed price",
+  retainer: "Retainer",
+  cpl: "CPL — per lead",
+  cpa: "CPA — per acquisition",
+  cpc: "CPC — per click",
+  rev_share: "Revenue share",
+};
+
+export const PERFORMANCE_PRICING_MODELS: PricingModel[] = [
+  "cpl",
+  "cpa",
+  "cpc",
+  "rev_share",
+];
 
 export const CURRENCIES = [
   "USD",
@@ -132,6 +158,7 @@ export type MetricField =
   | "impressions"
   | "clicks"
   | "leads"
+  | "approved_leads"
   | "conversions"
   | "sessions"
   | "organic_traffic"
@@ -142,6 +169,7 @@ export const METRIC_FIELD_LABELS: Record<MetricField, string> = {
   impressions: "Impressions",
   clicks: "Clicks",
   leads: "Leads",
+  approved_leads: "Approved leads",
   conversions: "Conversions",
   sessions: "Sessions",
   organic_traffic: "Organic traffic",
@@ -153,6 +181,7 @@ export const ALL_METRIC_FIELDS: MetricField[] = [
   "impressions",
   "clicks",
   "leads",
+  "approved_leads",
   "conversions",
   "sessions",
   "organic_traffic",
@@ -169,6 +198,25 @@ const METRIC_FIELDS_BY_SERVICE_SLUG: Record<string, MetricField[]> = {
   monetization: ["revenue_generated"],
 };
 
-export function metricFieldsForService(serviceSlug: string): MetricField[] {
-  return METRIC_FIELDS_BY_SERVICE_SLUG[serviceSlug] ?? ALL_METRIC_FIELDS;
+/** Fields the pricing model bills on — always shown regardless of service. */
+const METRIC_FIELDS_BY_PRICING_MODEL: Partial<
+  Record<PricingModel, MetricField[]>
+> = {
+  cpl: ["leads", "approved_leads", "spend"],
+  cpa: ["conversions", "spend"],
+  cpc: ["clicks", "spend"],
+  rev_share: ["revenue_generated", "spend"],
+};
+
+export function metricFieldsFor(
+  serviceSlug: string,
+  pricingModel: PricingModel
+): MetricField[] {
+  const base =
+    METRIC_FIELDS_BY_SERVICE_SLUG[serviceSlug] ?? ALL_METRIC_FIELDS;
+  const required = METRIC_FIELDS_BY_PRICING_MODEL[pricingModel] ?? [];
+  // Required fields first, keeping overall field order stable.
+  return ALL_METRIC_FIELDS.filter(
+    (field: MetricField) => base.includes(field) || required.includes(field)
+  );
 }
