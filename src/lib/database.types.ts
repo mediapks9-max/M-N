@@ -32,6 +32,40 @@ export type ActivityAction =
   | "deleted"
   | "invited";
 
+export type ClientType = "client" | "supplier" | "both";
+
+export type EngagementStatus =
+  | "proposal"
+  | "active"
+  | "paused"
+  | "completed"
+  | "cancelled";
+
+export type FinancialMode = "auto" | "manual";
+
+export type DeliverableType =
+  | "article"
+  | "audit_report"
+  | "website"
+  | "dashboard_report"
+  | "video"
+  | "creative"
+  | "landing_page"
+  | "other";
+
+export type DeliverableStatus =
+  | "planned"
+  | "in_progress"
+  | "review"
+  | "delivered"
+  | "published";
+
+export type ArticleStatus = "idea" | "draft" | "review" | "published";
+
+export type InvoiceDirection = "outbound" | "inbound";
+
+export type InvoiceStatus = "draft" | "sent" | "paid" | "overdue" | "cancelled";
+
 export interface Database {
   public: {
     Tables: {
@@ -221,6 +255,461 @@ export interface Database {
           },
         ];
       };
+      services: {
+        Row: {
+          id: string;
+          organization_id: string;
+          name: string;
+          slug: string;
+          color: string;
+          description: string;
+          is_active: boolean;
+          sort_order: number;
+          created_at: string;
+        };
+        Insert: {
+          id?: string;
+          organization_id: string;
+          name: string;
+          slug: string;
+          color?: string;
+          description?: string;
+          is_active?: boolean;
+          sort_order?: number;
+          created_at?: string;
+        };
+        Update: {
+          id?: string;
+          organization_id?: string;
+          name?: string;
+          slug?: string;
+          color?: string;
+          description?: string;
+          is_active?: boolean;
+          sort_order?: number;
+          created_at?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "services_organization_id_fkey";
+            columns: ["organization_id"];
+            isOneToOne: false;
+            referencedRelation: "organizations";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
+      clients: {
+        Row: {
+          id: string;
+          organization_id: string;
+          name: string;
+          company_name: string;
+          email: string;
+          phone: string;
+          default_currency: string;
+          notes: string;
+          type: ClientType;
+          created_at: string;
+        };
+        Insert: {
+          id?: string;
+          organization_id: string;
+          name: string;
+          company_name?: string;
+          email?: string;
+          phone?: string;
+          default_currency?: string;
+          notes?: string;
+          type?: ClientType;
+          created_at?: string;
+        };
+        Update: {
+          id?: string;
+          organization_id?: string;
+          name?: string;
+          company_name?: string;
+          email?: string;
+          phone?: string;
+          default_currency?: string;
+          notes?: string;
+          type?: ClientType;
+          created_at?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "clients_organization_id_fkey";
+            columns: ["organization_id"];
+            isOneToOne: false;
+            referencedRelation: "organizations";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
+      engagements: {
+        Row: {
+          id: string;
+          organization_id: string;
+          client_id: string;
+          service_id: string;
+          name: string;
+          status: EngagementStatus;
+          start_date: string | null;
+          end_date: string | null;
+          budget_amount: number | null;
+          budget_currency: string;
+          financial_mode: FinancialMode;
+          manual_revenue: number | null;
+          manual_cost: number | null;
+          notes: string;
+          created_at: string;
+        };
+        Insert: {
+          id?: string;
+          organization_id: string;
+          client_id: string;
+          service_id: string;
+          name: string;
+          status?: EngagementStatus;
+          start_date?: string | null;
+          end_date?: string | null;
+          budget_amount?: number | null;
+          budget_currency?: string;
+          financial_mode?: FinancialMode;
+          manual_revenue?: number | null;
+          manual_cost?: number | null;
+          notes?: string;
+          created_at?: string;
+        };
+        Update: {
+          id?: string;
+          organization_id?: string;
+          client_id?: string;
+          service_id?: string;
+          name?: string;
+          status?: EngagementStatus;
+          start_date?: string | null;
+          end_date?: string | null;
+          budget_amount?: number | null;
+          budget_currency?: string;
+          financial_mode?: FinancialMode;
+          manual_revenue?: number | null;
+          manual_cost?: number | null;
+          notes?: string;
+          created_at?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "engagements_organization_id_fkey";
+            columns: ["organization_id"];
+            isOneToOne: false;
+            referencedRelation: "organizations";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "engagements_client_id_organization_id_fkey";
+            columns: ["client_id"];
+            isOneToOne: false;
+            referencedRelation: "clients";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "engagements_service_id_organization_id_fkey";
+            columns: ["service_id"];
+            isOneToOne: false;
+            referencedRelation: "services";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
+      engagement_metrics: {
+        Row: {
+          id: string;
+          organization_id: string;
+          engagement_id: string;
+          period_start: string;
+          period_end: string;
+          spend: number | null;
+          impressions: number | null;
+          clicks: number | null;
+          leads: number | null;
+          conversions: number | null;
+          sessions: number | null;
+          organic_traffic: number | null;
+          revenue_generated: number | null;
+          notes: string;
+          created_at: string;
+        };
+        Insert: {
+          id?: string;
+          organization_id: string;
+          engagement_id: string;
+          period_start: string;
+          period_end: string;
+          spend?: number | null;
+          impressions?: number | null;
+          clicks?: number | null;
+          leads?: number | null;
+          conversions?: number | null;
+          sessions?: number | null;
+          organic_traffic?: number | null;
+          revenue_generated?: number | null;
+          notes?: string;
+          created_at?: string;
+        };
+        Update: {
+          id?: string;
+          organization_id?: string;
+          engagement_id?: string;
+          period_start?: string;
+          period_end?: string;
+          spend?: number | null;
+          impressions?: number | null;
+          clicks?: number | null;
+          leads?: number | null;
+          conversions?: number | null;
+          sessions?: number | null;
+          organic_traffic?: number | null;
+          revenue_generated?: number | null;
+          notes?: string;
+          created_at?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "engagement_metrics_engagement_id_organization_id_fkey";
+            columns: ["engagement_id"];
+            isOneToOne: false;
+            referencedRelation: "engagements";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
+      deliverables: {
+        Row: {
+          id: string;
+          organization_id: string;
+          engagement_id: string;
+          type: DeliverableType;
+          title: string;
+          status: DeliverableStatus;
+          due_date: string | null;
+          delivered_at: string | null;
+          url: string | null;
+          notes: string;
+          created_at: string;
+        };
+        Insert: {
+          id?: string;
+          organization_id: string;
+          engagement_id: string;
+          type: DeliverableType;
+          title: string;
+          status?: DeliverableStatus;
+          due_date?: string | null;
+          delivered_at?: string | null;
+          url?: string | null;
+          notes?: string;
+          created_at?: string;
+        };
+        Update: {
+          id?: string;
+          organization_id?: string;
+          engagement_id?: string;
+          type?: DeliverableType;
+          title?: string;
+          status?: DeliverableStatus;
+          due_date?: string | null;
+          delivered_at?: string | null;
+          url?: string | null;
+          notes?: string;
+          created_at?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "deliverables_engagement_id_organization_id_fkey";
+            columns: ["engagement_id"];
+            isOneToOne: false;
+            referencedRelation: "engagements";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
+      seo_articles: {
+        Row: {
+          id: string;
+          organization_id: string;
+          title: string;
+          engagement_id: string | null;
+          client_id: string | null;
+          target_keywords: string[];
+          status: ArticleStatus;
+          published_url: string;
+          published_at: string | null;
+          word_count: number;
+          content: string;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          id?: string;
+          organization_id: string;
+          title: string;
+          engagement_id?: string | null;
+          client_id?: string | null;
+          target_keywords?: string[];
+          status?: ArticleStatus;
+          published_url?: string;
+          published_at?: string | null;
+          word_count?: number;
+          content?: string;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Update: {
+          id?: string;
+          organization_id?: string;
+          title?: string;
+          engagement_id?: string | null;
+          client_id?: string | null;
+          target_keywords?: string[];
+          status?: ArticleStatus;
+          published_url?: string;
+          published_at?: string | null;
+          word_count?: number;
+          content?: string;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "seo_articles_engagement_id_organization_id_fkey";
+            columns: ["engagement_id"];
+            isOneToOne: false;
+            referencedRelation: "engagements";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "seo_articles_client_id_organization_id_fkey";
+            columns: ["client_id"];
+            isOneToOne: false;
+            referencedRelation: "clients";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
+      invoices: {
+        Row: {
+          id: string;
+          organization_id: string;
+          number: string;
+          direction: InvoiceDirection;
+          client_id: string;
+          engagement_id: string | null;
+          issue_date: string;
+          due_date: string | null;
+          currency: string;
+          status: InvoiceStatus;
+          notes: string;
+          subtotal: number;
+          tax_amount: number;
+          total: number;
+          paid_at: string | null;
+          created_at: string;
+        };
+        Insert: {
+          id?: string;
+          organization_id: string;
+          number: string;
+          direction: InvoiceDirection;
+          client_id: string;
+          engagement_id?: string | null;
+          issue_date?: string;
+          due_date?: string | null;
+          currency?: string;
+          status?: InvoiceStatus;
+          notes?: string;
+          subtotal?: number;
+          tax_amount?: number;
+          total?: number;
+          paid_at?: string | null;
+          created_at?: string;
+        };
+        Update: {
+          id?: string;
+          organization_id?: string;
+          number?: string;
+          direction?: InvoiceDirection;
+          client_id?: string;
+          engagement_id?: string | null;
+          issue_date?: string;
+          due_date?: string | null;
+          currency?: string;
+          status?: InvoiceStatus;
+          notes?: string;
+          subtotal?: number;
+          tax_amount?: number;
+          total?: number;
+          paid_at?: string | null;
+          created_at?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "invoices_client_id_organization_id_fkey";
+            columns: ["client_id"];
+            isOneToOne: false;
+            referencedRelation: "clients";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "invoices_engagement_id_organization_id_fkey";
+            columns: ["engagement_id"];
+            isOneToOne: false;
+            referencedRelation: "engagements";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
+      invoice_items: {
+        Row: {
+          id: string;
+          organization_id: string;
+          invoice_id: string;
+          description: string;
+          quantity: number;
+          unit_price: number;
+          line_total: number;
+          sort_order: number;
+        };
+        Insert: {
+          id?: string;
+          organization_id: string;
+          invoice_id: string;
+          description?: string;
+          quantity?: number;
+          unit_price?: number;
+          line_total?: number;
+          sort_order?: number;
+        };
+        Update: {
+          id?: string;
+          organization_id?: string;
+          invoice_id?: string;
+          description?: string;
+          quantity?: number;
+          unit_price?: number;
+          line_total?: number;
+          sort_order?: number;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "invoice_items_invoice_id_organization_id_fkey";
+            columns: ["invoice_id"];
+            isOneToOne: false;
+            referencedRelation: "invoices";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
     };
     Views: Record<string, never>;
     Functions: {
@@ -258,6 +747,14 @@ export interface Database {
         Args: { target: string };
         Returns: boolean;
       };
+      next_invoice_number: {
+        Args: { org: string };
+        Returns: string;
+      };
+      seed_default_services: {
+        Args: { org: string };
+        Returns: undefined;
+      };
     };
     Enums: Record<string, never>;
     CompositeTypes: Record<string, never>;
@@ -269,3 +766,12 @@ export type Profile = Database["public"]["Tables"]["profiles"]["Row"];
 export type Membership = Database["public"]["Tables"]["memberships"]["Row"];
 export type Invite = Database["public"]["Tables"]["invites"]["Row"];
 export type ActivityLogEntry = Database["public"]["Tables"]["activity_log"]["Row"];
+export type Service = Database["public"]["Tables"]["services"]["Row"];
+export type Client = Database["public"]["Tables"]["clients"]["Row"];
+export type Engagement = Database["public"]["Tables"]["engagements"]["Row"];
+export type EngagementMetric =
+  Database["public"]["Tables"]["engagement_metrics"]["Row"];
+export type Deliverable = Database["public"]["Tables"]["deliverables"]["Row"];
+export type SeoArticle = Database["public"]["Tables"]["seo_articles"]["Row"];
+export type Invoice = Database["public"]["Tables"]["invoices"]["Row"];
+export type InvoiceItem = Database["public"]["Tables"]["invoice_items"]["Row"];

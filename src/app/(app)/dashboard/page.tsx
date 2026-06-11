@@ -26,20 +26,21 @@ export default async function DashboardPage() {
       <Card>
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
-            Phase A foundation is live
+            Phase B modules are live
             <Badge variant="secondary">{role}</Badge>
           </CardTitle>
           <CardDescription>
-            Auth, organizations, memberships, invites and row-level security
-            are set up. The activity command center arrives in Phase C.
+            The activity command center lands here in Phase C. Until then,
+            everything runs from the sidebar.
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-2 text-sm text-muted-foreground">
-          <p>Things you can do right now:</p>
+          <p>Suggested first steps:</p>
           <ul className="list-disc space-y-1 pl-5">
-            <li>Invite teammates from Settings (owners and admins).</li>
-            <li>Rename your organization in Settings.</li>
-            <li>Create additional organizations and switch between them.</li>
+            <li>Review your service catalog under Services (8 defaults seeded).</li>
+            <li>Add your clients, then create engagements (client × service).</li>
+            <li>Track deliverables, log KPI metrics, draft SEO articles.</li>
+            <li>Create invoices — numbering, totals and PDF export included.</li>
           </ul>
         </CardContent>
       </Card>
