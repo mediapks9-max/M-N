@@ -241,6 +241,60 @@ export async function simulationTickAction(
     }
   }
 
+  // --- Lead funnel: visits trickle in, and sometimes a lead ---
+  // Uses the same public RPCs as the real site, so the entire
+  // production pipeline is exercised.
+  const { data: orgRow } = await supabase
+    .from("organizations")
+    .select("slug")
+    .eq("id", orgId)
+    .maybeSingle();
+
+  if (orgRow) {
+    const utmPool = [
+      { source: "", medium: "", campaign: "", referrer: "https://www.google.com/" },
+      { source: "google", medium: "cpc", campaign: "brand-search", referrer: "https://www.google.com/" },
+      { source: "facebook", medium: "cpc", campaign: "spring-launch", referrer: "https://l.facebook.com/" },
+    ];
+    const utm = utmPool[randInt(0, utmPool.length - 1)];
+    const paths = [
+      "/",
+      "/blog",
+      "/blog/small-business-seo-playbook",
+      "/blog/google-ads-vs-seo",
+    ];
+
+    await supabase.rpc("track_visit", {
+      org_slug: orgRow.slug,
+      visitor: `sim-live-${randInt(1, 80)}`,
+      page_path: paths[randInt(0, paths.length - 1)],
+      page_referrer: utm.referrer,
+      utm_source: utm.source,
+      utm_medium: utm.medium,
+      utm_campaign: utm.campaign,
+    });
+
+    if (Math.random() < 0.18) {
+      const firstNames = ["Alex", "Dana", "Yuri", "Mia", "Leo", "Tamar", "Noa", "Ben"];
+      const lastNames = ["Levi", "Marsh", "Kogan", "Reyes", "Brandt", "Okafor"];
+      const name = `${firstNames[randInt(0, firstNames.length - 1)]} ${lastNames[randInt(0, lastNames.length - 1)]}`;
+      await supabase.rpc("submit_lead", {
+        org_slug: orgRow.slug,
+        lead_name: name,
+        lead_email: `${name.toLowerCase().replace(/\s+/g, ".")}.${randInt(10, 99)}@example.com`,
+        lead_phone: "",
+        lead_message: "[SIM] Live-demo lead — interested in your services.",
+        visitor: `sim-live-${randInt(1, 80)}`,
+        landing: "/blog",
+        page_referrer: utm.referrer,
+        utm_source: utm.source,
+        utm_medium: utm.medium,
+        utm_campaign: utm.campaign,
+        lead_source: Math.random() < 0.3 ? "waveroi.biz" : "website",
+      });
+    }
+  }
+
   // Occasionally surface the activity in the feed so it scrolls.
   if (Math.random() < 0.35) {
     const subject = engagements[randInt(0, engagements.length - 1)];
