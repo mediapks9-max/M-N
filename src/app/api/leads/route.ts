@@ -43,7 +43,8 @@ export async function POST(request: Request) {
 
   const supabase = await createClient();
   const { data, error } = await supabase.rpc("submit_lead", {
-    org_slug: process.env.NEXT_PUBLIC_SITE_ORG_SLUG ?? "",
+    // Embedded forms may route to a specific client organization.
+    org_slug: str("org_slug") || (process.env.NEXT_PUBLIC_SITE_ORG_SLUG ?? ""),
     lead_name: str("name"),
     lead_email: str("email"),
     lead_phone: str("phone"),

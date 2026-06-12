@@ -20,12 +20,15 @@ interface LeadFormProps {
   description?: string;
   /** Tag for leads from embedded forms on external sites. */
   source?: string;
+  /** Route the lead to a specific organization (embeds on client sites). */
+  orgSlug?: string;
 }
 
 export function LeadForm({
   title = "Get in touch",
   description = "Tell us what you're working on — we'll get back to you within one business day.",
   source,
+  orgSlug,
 }: LeadFormProps) {
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
@@ -55,6 +58,7 @@ export function LeadForm({
           ...(source
             ? { site: source, landing_page: firstTouch.landing_page || source }
             : {}),
+          ...(orgSlug ? { org_slug: orgSlug } : {}),
         }),
       });
       if (!response.ok) {
