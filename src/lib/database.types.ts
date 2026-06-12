@@ -941,6 +941,7 @@ export interface Database {
           utm_campaign?: string;
           utm_term?: string;
           utm_content?: string;
+          lead_source?: string;
         };
         Returns: string;
       };

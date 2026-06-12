@@ -4,7 +4,7 @@ import { createServerClient } from "@supabase/ssr";
 import type { Database } from "@/lib/database.types";
 
 const PUBLIC_PATHS = ["/", "/login", "/signup", "/blog"];
-const PUBLIC_PREFIXES = ["/invite/", "/auth/", "/blog/", "/api/"];
+const PUBLIC_PREFIXES = ["/invite/", "/auth/", "/blog/", "/api/", "/embed/"];
 
 function isPublicPath(pathname: string): boolean {
   return (

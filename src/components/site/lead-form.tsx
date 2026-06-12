@@ -18,11 +18,14 @@ import { getFirstTouch, getVisitorId } from "@/lib/tracking";
 interface LeadFormProps {
   title?: string;
   description?: string;
+  /** Tag for leads from embedded forms on external sites. */
+  source?: string;
 }
 
 export function LeadForm({
   title = "Get in touch",
   description = "Tell us what you're working on — we'll get back to you within one business day.",
+  source,
 }: LeadFormProps) {
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
@@ -49,6 +52,9 @@ export function LeadForm({
           message,
           visitor: getVisitorId(),
           ...firstTouch,
+          ...(source
+            ? { site: source, landing_page: firstTouch.landing_page || source }
+            : {}),
         }),
       });
       if (!response.ok) {
