@@ -7,6 +7,7 @@ import {
   BarChart3,
   Briefcase,
   FileText,
+  Inbox,
   LayoutDashboard,
   Newspaper,
   Package,
@@ -26,6 +27,7 @@ interface NavItem {
 
 const navItems: NavItem[] = [
   { href: "/dashboard", label: "Dashboard", icon: LayoutDashboard },
+  { href: "/leads", label: "Leads", icon: Inbox },
   { href: "/services", label: "Services", icon: Package },
   { href: "/clients", label: "Clients", icon: Users },
   { href: "/engagements", label: "Engagements", icon: Briefcase },

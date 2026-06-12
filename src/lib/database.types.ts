@@ -20,7 +20,15 @@ export type ActivityEntityType =
   | "article"
   | "metric"
   | "member"
-  | "service";
+  | "service"
+  | "lead";
+
+export type LeadStatus =
+  | "new"
+  | "contacted"
+  | "qualified"
+  | "converted"
+  | "lost";
 
 export type ActivityAction =
   | "created"
@@ -572,6 +580,7 @@ export interface Database {
           id: string;
           organization_id: string;
           title: string;
+          slug: string;
           engagement_id: string | null;
           client_id: string | null;
           target_keywords: string[];
@@ -587,6 +596,7 @@ export interface Database {
           id?: string;
           organization_id: string;
           title: string;
+          slug?: string;
           engagement_id?: string | null;
           client_id?: string | null;
           target_keywords?: string[];
@@ -602,6 +612,7 @@ export interface Database {
           id?: string;
           organization_id?: string;
           title?: string;
+          slug?: string;
           engagement_id?: string | null;
           client_id?: string | null;
           target_keywords?: string[];
@@ -743,6 +754,119 @@ export interface Database {
           },
         ];
       };
+      leads: {
+        Row: {
+          id: string;
+          organization_id: string;
+          name: string;
+          email: string;
+          phone: string;
+          message: string;
+          status: LeadStatus;
+          source: string;
+          utm_source: string;
+          utm_medium: string;
+          utm_campaign: string;
+          utm_term: string;
+          utm_content: string;
+          referrer: string;
+          landing_page: string;
+          visitor_id: string;
+          client_id: string | null;
+          created_at: string;
+        };
+        Insert: {
+          id?: string;
+          organization_id: string;
+          name: string;
+          email: string;
+          phone?: string;
+          message?: string;
+          status?: LeadStatus;
+          source?: string;
+          utm_source?: string;
+          utm_medium?: string;
+          utm_campaign?: string;
+          utm_term?: string;
+          utm_content?: string;
+          referrer?: string;
+          landing_page?: string;
+          visitor_id?: string;
+          client_id?: string | null;
+          created_at?: string;
+        };
+        Update: {
+          id?: string;
+          organization_id?: string;
+          name?: string;
+          email?: string;
+          phone?: string;
+          message?: string;
+          status?: LeadStatus;
+          source?: string;
+          utm_source?: string;
+          utm_medium?: string;
+          utm_campaign?: string;
+          utm_term?: string;
+          utm_content?: string;
+          referrer?: string;
+          landing_page?: string;
+          visitor_id?: string;
+          client_id?: string | null;
+          created_at?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "leads_client_id_organization_id_fkey";
+            columns: ["client_id"];
+            isOneToOne: false;
+            referencedRelation: "clients";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
+      site_visits: {
+        Row: {
+          id: string;
+          organization_id: string;
+          visitor_id: string;
+          path: string;
+          referrer: string;
+          utm_source: string;
+          utm_medium: string;
+          utm_campaign: string;
+          utm_term: string;
+          utm_content: string;
+          created_at: string;
+        };
+        Insert: {
+          id?: string;
+          organization_id: string;
+          visitor_id?: string;
+          path?: string;
+          referrer?: string;
+          utm_source?: string;
+          utm_medium?: string;
+          utm_campaign?: string;
+          utm_term?: string;
+          utm_content?: string;
+          created_at?: string;
+        };
+        Update: {
+          id?: string;
+          organization_id?: string;
+          visitor_id?: string;
+          path?: string;
+          referrer?: string;
+          utm_source?: string;
+          utm_medium?: string;
+          utm_campaign?: string;
+          utm_term?: string;
+          utm_content?: string;
+          created_at?: string;
+        };
+        Relationships: [];
+      };
     };
     Views: Record<string, never>;
     Functions: {
@@ -788,6 +912,60 @@ export interface Database {
         Args: { org: string };
         Returns: undefined;
       };
+      track_visit: {
+        Args: {
+          org_slug: string;
+          visitor: string;
+          page_path: string;
+          page_referrer: string;
+          utm_source?: string;
+          utm_medium?: string;
+          utm_campaign?: string;
+          utm_term?: string;
+          utm_content?: string;
+        };
+        Returns: undefined;
+      };
+      submit_lead: {
+        Args: {
+          org_slug: string;
+          lead_name: string;
+          lead_email: string;
+          lead_phone?: string;
+          lead_message?: string;
+          visitor?: string;
+          landing?: string;
+          page_referrer?: string;
+          utm_source?: string;
+          utm_medium?: string;
+          utm_campaign?: string;
+          utm_term?: string;
+          utm_content?: string;
+        };
+        Returns: string;
+      };
+      get_public_articles: {
+        Args: { org_slug: string };
+        Returns: {
+          id: string;
+          title: string;
+          slug: string;
+          excerpt: string;
+          published_at: string | null;
+          word_count: number;
+        }[];
+      };
+      get_public_article: {
+        Args: { org_slug: string; article_slug: string };
+        Returns: {
+          id: string;
+          title: string;
+          slug: string;
+          content: string;
+          published_at: string | null;
+          word_count: number;
+        }[];
+      };
     };
     Enums: Record<string, never>;
     CompositeTypes: Record<string, never>;
@@ -807,4 +985,6 @@ export type EngagementMetric =
 export type Deliverable = Database["public"]["Tables"]["deliverables"]["Row"];
 export type SeoArticle = Database["public"]["Tables"]["seo_articles"]["Row"];
 export type Invoice = Database["public"]["Tables"]["invoices"]["Row"];
+export type Lead = Database["public"]["Tables"]["leads"]["Row"];
+export type SiteVisit = Database["public"]["Tables"]["site_visits"]["Row"];
 export type InvoiceItem = Database["public"]["Tables"]["invoice_items"]["Row"];

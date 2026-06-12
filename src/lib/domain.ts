@@ -5,6 +5,7 @@ import type {
   DeliverableType,
   EngagementStatus,
   InvoiceStatus,
+  LeadStatus,
   PricingModel,
 } from "@/lib/database.types";
 
@@ -144,6 +145,30 @@ export const CLIENT_TYPE_LABELS: Record<ClientType, string> = {
   client: "Client",
   supplier: "Supplier",
   both: "Client & supplier",
+};
+
+export const LEAD_STATUSES: LeadStatus[] = [
+  "new",
+  "contacted",
+  "qualified",
+  "converted",
+  "lost",
+];
+
+export const LEAD_STATUS_LABELS: Record<LeadStatus, string> = {
+  new: "New",
+  contacted: "Contacted",
+  qualified: "Qualified",
+  converted: "Converted",
+  lost: "Lost",
+};
+
+export const LEAD_STATUS_CLASSES: Record<LeadStatus, string> = {
+  new: "bg-amber-100 text-amber-800",
+  contacted: "bg-blue-100 text-blue-800",
+  qualified: "bg-violet-100 text-violet-800",
+  converted: "bg-emerald-100 text-emerald-800",
+  lost: "bg-slate-200 text-slate-600",
 };
 
 /** Invoice statuses that count toward engagement revenue/cost in 'auto' mode. */

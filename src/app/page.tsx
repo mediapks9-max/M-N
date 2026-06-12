@@ -1,6 +1,9 @@
 import Link from "next/link";
 import { BarChart3, FileText, LayoutGrid } from "lucide-react";
 
+import { LeadForm } from "@/components/site/lead-form";
+import { SiteHeader } from "@/components/site/site-header";
+import { SiteTracker } from "@/components/site/site-tracker";
 import { Button } from "@/components/ui/button";
 import {
   Card,
@@ -34,21 +37,8 @@ const features = [
 export default function LandingPage() {
   return (
     <div className="flex min-h-screen flex-col">
-      <header className="border-b">
-        <div className="mx-auto flex h-16 w-full max-w-5xl items-center justify-between px-6">
-          <span className="text-lg font-semibold tracking-tight">
-            {branding.productName}
-          </span>
-          <nav className="flex items-center gap-2">
-            <Button variant="ghost" asChild>
-              <Link href="/login">Log in</Link>
-            </Button>
-            <Button asChild>
-              <Link href="/signup">Get started</Link>
-            </Button>
-          </nav>
-        </div>
-      </header>
+      <SiteTracker />
+      <SiteHeader />
 
       <main className="flex-1">
         <section className="mx-auto w-full max-w-5xl px-6 py-24 text-center">
@@ -82,6 +72,10 @@ export default function LandingPage() {
               </Card>
             ))}
           </div>
+        </section>
+
+        <section className="mx-auto w-full max-w-xl px-6 pb-24">
+          <LeadForm />
         </section>
       </main>
 

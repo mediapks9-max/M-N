@@ -5,7 +5,39 @@ import { redirect } from "next/navigation";
 
 import { logActivity } from "@/lib/activity";
 import type { ArticleStatus } from "@/lib/database.types";
+import { slugify } from "@/lib/slug";
 import { createClient } from "@/lib/supabase/server";
+
+type SupabaseServerClient = Awaited<ReturnType<typeof createClient>>;
+
+/** Unique public slug for /blog/[slug]; stable once assigned. */
+async function uniqueArticleSlug(
+  supabase: SupabaseServerClient,
+  orgId: string,
+  title: string,
+  excludeId?: string
+): Promise<string> {
+  let base = slugify(title);
+  if (base === "item") {
+    base = "article";
+  }
+  const { data: rows } = await supabase
+    .from("seo_articles")
+    .select("id, slug")
+    .eq("organization_id", orgId);
+  const taken = new Set(
+    (rows ?? [])
+      .filter((row: { id: string }) => row.id !== excludeId)
+      .map((row: { slug: string }) => row.slug)
+  );
+  let slug = base;
+  let n = 1;
+  while (taken.has(slug)) {
+    n += 1;
+    slug = `${base}-${n}`;
+  }
+  return slug;
+}
 
 export interface ActionResult {
   error?: string;
@@ -48,11 +80,14 @@ export async function createArticleAction(
     return { error: "Title is required." };
   }
 
+  const slug = await uniqueArticleSlug(supabase, orgId, input.title);
+
   const { data: article, error } = await supabase
     .from("seo_articles")
     .insert({
       organization_id: orgId,
       title: input.title.trim(),
+      slug,
       engagement_id: input.engagement_id,
       client_id: input.client_id,
       target_keywords: input.target_keywords,
@@ -95,7 +130,7 @@ export async function updateArticleAction(
 
   const { data: before } = await supabase
     .from("seo_articles")
-    .select("status, published_at")
+    .select("status, published_at, slug")
     .eq("id", articleId)
     .eq("organization_id", orgId)
     .maybeSingle();
@@ -103,10 +138,17 @@ export async function updateArticleAction(
   const becamePublished =
     input.status === "published" && before?.status !== "published";
 
+  // Slugs stay stable once assigned (public URLs); only fill gaps.
+  const slug =
+    before && !before.slug
+      ? await uniqueArticleSlug(supabase, orgId, input.title, articleId)
+      : undefined;
+
   const { data, error } = await supabase
     .from("seo_articles")
     .update({
       title: input.title.trim(),
+      ...(slug ? { slug } : {}),
       engagement_id: input.engagement_id,
       client_id: input.client_id,
       target_keywords: input.target_keywords,

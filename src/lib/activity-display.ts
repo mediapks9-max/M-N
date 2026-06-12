@@ -17,6 +17,7 @@ export const ENTITY_TYPE_LABELS: Record<ActivityEntityType, string> = {
   metric: "Metric",
   member: "Member",
   service: "Service",
+  lead: "Lead",
 };
 
 export const ALL_ENTITY_TYPES: ActivityEntityType[] = [
@@ -28,6 +29,7 @@ export const ALL_ENTITY_TYPES: ActivityEntityType[] = [
   "metric",
   "member",
   "service",
+  "lead",
 ];
 
 const ACTION_VERBS: Record<ActivityAction, string> = {
