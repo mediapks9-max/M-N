@@ -7,6 +7,7 @@ import { SiteHeader } from "@/components/site/site-header";
 import { SiteTracker } from "@/components/site/site-tracker";
 import { branding } from "@/lib/branding";
 import { formatDate } from "@/lib/format";
+import { siteUrl } from "@/lib/site";
 import { createClient } from "@/lib/supabase/server";
 
 interface PublicArticle {
@@ -37,9 +38,27 @@ export async function generateMetadata({ params }: ArticlePageProps) {
   if (!article) {
     return { title: "Article not found" };
   }
+  const description = article.content
+    .replace(/[#*`>\[\]]/g, "")
+    .replace(/\s+/g, " ")
+    .trim()
+    .slice(0, 160);
   return {
     title: article.title,
-    description: article.content.replace(/[#*`>\[\]]/g, "").slice(0, 160),
+    description,
+    alternates: { canonical: `/blog/${article.slug}` },
+    openGraph: {
+      title: article.title,
+      description,
+      type: "article",
+      publishedTime: article.published_at ?? undefined,
+      url: `/blog/${article.slug}`,
+    },
+    twitter: {
+      card: "summary_large_image",
+      title: article.title,
+      description,
+    },
   };
 }
 
@@ -50,8 +69,26 @@ export default async function PublicArticlePage({ params }: ArticlePageProps) {
     notFound();
   }
 
+  const jsonLd = {
+    "@context": "https://schema.org",
+    "@type": "Article",
+    headline: article.title,
+    datePublished: article.published_at ?? undefined,
+    wordCount: article.word_count || undefined,
+    url: `${siteUrl()}/blog/${article.slug}`,
+    publisher: {
+      "@type": "Organization",
+      name: branding.productName,
+      url: siteUrl(),
+    },
+  };
+
   return (
     <div className="flex min-h-screen flex-col">
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
+      />
       <SiteTracker />
       <SiteHeader />
 
