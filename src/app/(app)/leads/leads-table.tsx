@@ -35,6 +35,13 @@ interface LeadsTableProps {
 }
 
 function sourceLabel(lead: Lead): string {
+  // Site tag from embedded forms takes priority — it says exactly
+  // which property captured the lead.
+  if (lead.source && lead.source !== "website") {
+    return lead.utm_source
+      ? `${lead.source} · ${lead.utm_source}`
+      : lead.source;
+  }
   if (lead.utm_source) {
     return `${lead.utm_source}${lead.utm_medium ? ` / ${lead.utm_medium}` : ""}`;
   }
