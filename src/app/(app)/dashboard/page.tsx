@@ -155,7 +155,9 @@ export default async function DashboardPage({
       .order("sort_order"),
     supabase
       .from("engagements")
-      .select("id, name, status, client_id, service_id, client:clients(name)")
+      .select(
+        "id, name, status, client_id, service_id, client:clients!engagements_client_id_organization_id_fkey(name)"
+      )
       .eq("organization_id", org.id)
       .in("status", MATRIX_STATUSES),
     supabase

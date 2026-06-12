@@ -48,7 +48,7 @@ export default async function EngagementsPage({
   let query = supabase
     .from("engagements")
     .select(
-      "*, client:clients(id, name), service:services(id, name, color, slug)"
+      "*, client:clients!engagements_client_id_organization_id_fkey(id, name), service:services(id, name, color, slug)"
     )
     .eq("organization_id", org.id)
     .order("created_at", { ascending: false });

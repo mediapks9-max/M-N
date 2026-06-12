@@ -437,6 +437,13 @@ export interface Database {
             referencedColumns: ["id"];
           },
           {
+            foreignKeyName: "engagements_supplier_fk";
+            columns: ["supplier_id"];
+            isOneToOne: false;
+            referencedRelation: "clients";
+            referencedColumns: ["id"];
+          },
+          {
             foreignKeyName: "engagements_service_id_organization_id_fkey";
             columns: ["service_id"];
             isOneToOne: false;

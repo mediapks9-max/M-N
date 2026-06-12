@@ -113,7 +113,7 @@ export default async function ReportsPage({ searchParams }: ReportsPageProps) {
     supabase
       .from("engagement_metrics")
       .select(
-        "engagement_id, period_start, leads, approved_leads, conversions, clicks, revenue_generated, spend, engagement:engagements(id, name, budget_currency, pricing_model, unit_rate, rev_share_percent, payout_percent, client:clients(name))"
+        "engagement_id, period_start, leads, approved_leads, conversions, clicks, revenue_generated, spend, engagement:engagements(id, name, budget_currency, pricing_model, unit_rate, rev_share_percent, payout_percent, client:clients!engagements_client_id_organization_id_fkey(name))"
       )
       .eq("organization_id", org.id),
   ]);

@@ -83,7 +83,7 @@ export default async function EngagementPage({
   const { data: engagementRow } = await supabase
     .from("engagements")
     .select(
-      "*, client:clients(id, name), service:services(id, name, color, slug)"
+      "*, client:clients!engagements_client_id_organization_id_fkey(id, name), service:services(id, name, color, slug)"
     )
     .eq("id", id)
     .eq("organization_id", org.id)

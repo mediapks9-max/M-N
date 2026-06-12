@@ -50,7 +50,9 @@ export default async function DeliverablesPage({
 
   let query = supabase
     .from("deliverables")
-    .select("*, engagement:engagements(id, name, client:clients(name))")
+    .select(
+      "*, engagement:engagements(id, name, client:clients!engagements_client_id_organization_id_fkey(name))"
+    )
     .eq("organization_id", org.id)
     .order("due_date", { ascending: true, nullsFirst: false });
 
