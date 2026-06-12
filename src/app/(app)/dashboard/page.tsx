@@ -23,11 +23,20 @@ import type {
   InvoiceDirection,
   InvoiceStatus,
 } from "@/lib/database.types";
-import { DELIVERABLE_STATUS_LABELS } from "@/lib/domain";
+import {
+  DELIVERABLE_STATUS_LABELS,
+  PERFORMANCE_PRICING_MODELS,
+} from "@/lib/domain";
+import {
+  metricEarnedRevenue,
+  type MetricPerformanceRow,
+  type PerformancePricing,
+} from "@/lib/finance";
 import { formatCurrency, formatDate, isOverdue } from "@/lib/format";
 import { getOrgContext } from "@/lib/org";
 import { createClient } from "@/lib/supabase/server";
 import { cn } from "@/lib/utils";
+import { LiveSimulator } from "./live-simulator";
 
 export const metadata = { title: "Dashboard" };
 
@@ -38,12 +47,13 @@ interface ServiceRow {
   slug: string;
 }
 
-interface EngagementRow {
+interface EngagementRow extends PerformancePricing {
   id: string;
   name: string;
   status: EngagementStatus;
   client_id: string;
   service_id: string;
+  budget_currency: string;
   client: { name: string } | null;
 }
 
@@ -140,12 +150,22 @@ export default async function DashboardPage({
     );
   }
 
+  const monthStartDate = new Date();
+  const monthStartISO = new Date(
+    monthStartDate.getFullYear(),
+    monthStartDate.getMonth(),
+    1
+  )
+    .toISOString()
+    .slice(0, 10);
+
   const [
     { data: serviceRows },
     { data: engagementRows },
     { data: deliverableRows },
     { data: invoiceRows },
     { data: activityRows },
+    { data: monthMetricRows },
   ] = await Promise.all([
     supabase
       .from("services")
@@ -156,7 +176,7 @@ export default async function DashboardPage({
     supabase
       .from("engagements")
       .select(
-        "id, name, status, client_id, service_id, client:clients!engagements_client_id_organization_id_fkey(name)"
+        "id, name, status, client_id, service_id, budget_currency, pricing_model, unit_rate, rev_share_percent, payout_percent, client:clients!engagements_client_id_organization_id_fkey(name)"
       )
       .eq("organization_id", org.id)
       .in("status", MATRIX_STATUSES),
@@ -169,6 +189,13 @@ export default async function DashboardPage({
       .select("direction, status, total, currency, paid_at")
       .eq("organization_id", org.id),
     activityQuery,
+    supabase
+      .from("engagement_metrics")
+      .select(
+        "engagement_id, leads, approved_leads, conversions, clicks, revenue_generated, spend"
+      )
+      .eq("organization_id", org.id)
+      .gte("period_start", monthStartISO),
   ]);
 
   const services = (serviceRows ?? []) as ServiceRow[];
@@ -288,13 +315,41 @@ export default async function DashboardPage({
     )
   );
 
+  // Earned-but-not-necessarily-invoiced revenue from performance deals,
+  // computed from this month's metrics — this is what moves in live demo.
+  const monthMetrics = (monthMetricRows ?? []) as MetricPerformanceRow[];
+  const perfEarnedThisMonth: Record<string, number> = {};
+  for (const engagement of engagements) {
+    if (engagement.status !== "active") continue;
+    if (!PERFORMANCE_PRICING_MODELS.includes(engagement.pricing_model)) {
+      continue;
+    }
+    const earned = monthMetrics
+      .filter(
+        (metric: MetricPerformanceRow) =>
+          metric.engagement_id === engagement.id
+      )
+      .reduce(
+        (sum: number, metric: MetricPerformanceRow) =>
+          sum + metricEarnedRevenue(engagement, metric),
+        0
+      );
+    if (earned > 0) {
+      perfEarnedThisMonth[engagement.budget_currency] =
+        (perfEarnedThisMonth[engagement.budget_currency] ?? 0) + earned;
+    }
+  }
+
   return (
     <div className="space-y-8">
-      <div>
-        <h1 className="text-2xl font-bold tracking-tight">Dashboard</h1>
-        <p className="text-sm text-muted-foreground">
-          What&apos;s running across {org.name}, right now.
-        </p>
+      <div className="flex flex-wrap items-start justify-between gap-4">
+        <div>
+          <h1 className="text-2xl font-bold tracking-tight">Dashboard</h1>
+          <p className="text-sm text-muted-foreground">
+            What&apos;s running across {org.name}, right now.
+          </p>
+        </div>
+        <LiveSimulator orgId={org.id} />
       </div>
 
       {/* 1 — Activity by service */}
@@ -492,7 +547,7 @@ export default async function DashboardPage({
       </section>
 
       {/* 4 — Finance row */}
-      <section className="grid gap-4 sm:grid-cols-3">
+      <section className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
         <Link href="/reports" className="block">
           <Card className="h-full transition-colors hover:bg-accent">
             <CardHeader className="pb-2">
@@ -500,6 +555,18 @@ export default async function DashboardPage({
             </CardHeader>
             <CardContent>
               <CurrencyLines sums={revenueThisMonth} />
+            </CardContent>
+          </Card>
+        </Link>
+        <Link href="/engagements?status=active" className="block">
+          <Card className="h-full transition-colors hover:bg-accent">
+            <CardHeader className="pb-2">
+              <CardDescription>
+                Earned this month (performance)
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              <CurrencyLines sums={perfEarnedThisMonth} />
             </CardContent>
           </Card>
         </Link>
