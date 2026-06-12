@@ -144,6 +144,103 @@ export async function simulationTickAction(
     }
   }
 
+  // --- Campaign layer: today's daily stats tick along too ---
+  const today = new Date().toISOString().slice(0, 10);
+  const { data: activeCampaigns } = await supabase
+    .from("campaigns")
+    .select("id, target_cpl")
+    .eq("organization_id", orgId)
+    .eq("status", "active")
+    .limit(10);
+
+  for (const campaign of activeCampaigns ?? []) {
+    const impressions = randInt(900, 4200);
+    const clicks = randInt(4, 22);
+    const leads = Math.random() < 0.6 ? randInt(0, 3) : 0;
+    const conversions = leads > 0 && Math.random() < 0.4 ? 1 : 0;
+    const spend = Math.round(clicks * (2.5 + Math.random() * 4) * 100) / 100;
+    const revenue =
+      Math.round(leads * (60 + Math.random() * 80) * 100) / 100;
+
+    const { data: existing } = await supabase
+      .from("campaign_stats")
+      .select("id, impressions, clicks, leads, conversions, spend, revenue")
+      .eq("campaign_id", campaign.id)
+      .eq("date", today)
+      .maybeSingle();
+
+    if (existing) {
+      await supabase
+        .from("campaign_stats")
+        .update({
+          impressions: existing.impressions + impressions,
+          clicks: existing.clicks + clicks,
+          leads: existing.leads + leads,
+          conversions: existing.conversions + conversions,
+          spend: Math.round((existing.spend + spend) * 100) / 100,
+          revenue: Math.round((existing.revenue + revenue) * 100) / 100,
+        })
+        .eq("id", existing.id);
+    } else {
+      await supabase.from("campaign_stats").insert({
+        organization_id: orgId,
+        campaign_id: campaign.id,
+        date: today,
+        impressions,
+        clicks,
+        leads,
+        conversions,
+        spend,
+        revenue,
+      });
+    }
+  }
+
+  // --- Publisher layer: placement revenue trickles in ---
+  const { data: activePlacements } = await supabase
+    .from("placements")
+    .select("id")
+    .eq("organization_id", orgId)
+    .eq("status", "active")
+    .limit(6);
+
+  const networks = ["AdSense", "Taboola", "Ezoic"];
+  for (const placement of activePlacements ?? []) {
+    const network = networks[randInt(0, networks.length - 1)];
+    const impressions = randInt(500, 3000);
+    const clicks = randInt(1, 12);
+    const revenue = Math.round(clicks * (0.8 + Math.random() * 2.5) * 100) / 100;
+
+    const { data: existing } = await supabase
+      .from("placement_stats")
+      .select("id, impressions, clicks, revenue")
+      .eq("placement_id", placement.id)
+      .eq("network", network)
+      .eq("date", today)
+      .maybeSingle();
+
+    if (existing) {
+      await supabase
+        .from("placement_stats")
+        .update({
+          impressions: existing.impressions + impressions,
+          clicks: existing.clicks + clicks,
+          revenue: Math.round((existing.revenue + revenue) * 100) / 100,
+        })
+        .eq("id", existing.id);
+    } else {
+      await supabase.from("placement_stats").insert({
+        organization_id: orgId,
+        placement_id: placement.id,
+        network,
+        date: today,
+        impressions,
+        clicks,
+        revenue,
+      });
+    }
+  }
+
   // Occasionally surface the activity in the feed so it scrolls.
   if (Math.random() < 0.35) {
     const subject = engagements[randInt(0, engagements.length - 1)];

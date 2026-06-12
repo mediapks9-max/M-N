@@ -21,7 +21,21 @@ export type ActivityEntityType =
   | "metric"
   | "member"
   | "service"
-  | "lead";
+  | "lead"
+  | "campaign"
+  | "placement";
+
+export type CampaignChannel =
+  | "google_ads"
+  | "meta"
+  | "tiktok"
+  | "native"
+  | "display"
+  | "email"
+  | "affiliate"
+  | "other";
+
+export type CampaignStatus = "draft" | "active" | "paused" | "ended";
 
 export type LeadStatus =
   | "new"
@@ -867,6 +881,200 @@ export interface Database {
         };
         Relationships: [];
       };
+      campaigns: {
+        Row: {
+          id: string;
+          organization_id: string;
+          engagement_id: string;
+          name: string;
+          channel: CampaignChannel;
+          network: string;
+          status: CampaignStatus;
+          daily_budget: number | null;
+          total_budget: number | null;
+          target_cpl: number | null;
+          target_cpa: number | null;
+          target_roas: number | null;
+          currency: string;
+          start_date: string | null;
+          end_date: string | null;
+          notes: string;
+          created_at: string;
+        };
+        Insert: {
+          id?: string;
+          organization_id: string;
+          engagement_id: string;
+          name: string;
+          channel?: CampaignChannel;
+          network?: string;
+          status?: CampaignStatus;
+          daily_budget?: number | null;
+          total_budget?: number | null;
+          target_cpl?: number | null;
+          target_cpa?: number | null;
+          target_roas?: number | null;
+          currency?: string;
+          start_date?: string | null;
+          end_date?: string | null;
+          notes?: string;
+          created_at?: string;
+        };
+        Update: {
+          id?: string;
+          organization_id?: string;
+          engagement_id?: string;
+          name?: string;
+          channel?: CampaignChannel;
+          network?: string;
+          status?: CampaignStatus;
+          daily_budget?: number | null;
+          total_budget?: number | null;
+          target_cpl?: number | null;
+          target_cpa?: number | null;
+          target_roas?: number | null;
+          currency?: string;
+          start_date?: string | null;
+          end_date?: string | null;
+          notes?: string;
+          created_at?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "campaigns_engagement_id_organization_id_fkey";
+            columns: ["engagement_id"];
+            isOneToOne: false;
+            referencedRelation: "engagements";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
+      campaign_stats: {
+        Row: {
+          id: string;
+          organization_id: string;
+          campaign_id: string;
+          date: string;
+          impressions: number;
+          clicks: number;
+          leads: number;
+          conversions: number;
+          spend: number;
+          revenue: number;
+        };
+        Insert: {
+          id?: string;
+          organization_id: string;
+          campaign_id: string;
+          date: string;
+          impressions?: number;
+          clicks?: number;
+          leads?: number;
+          conversions?: number;
+          spend?: number;
+          revenue?: number;
+        };
+        Update: {
+          id?: string;
+          organization_id?: string;
+          campaign_id?: string;
+          date?: string;
+          impressions?: number;
+          clicks?: number;
+          leads?: number;
+          conversions?: number;
+          spend?: number;
+          revenue?: number;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "campaign_stats_campaign_id_organization_id_fkey";
+            columns: ["campaign_id"];
+            isOneToOne: false;
+            referencedRelation: "campaigns";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
+      placements: {
+        Row: {
+          id: string;
+          organization_id: string;
+          supplier_id: string;
+          name: string;
+          ad_format: string;
+          status: "active" | "paused";
+          created_at: string;
+        };
+        Insert: {
+          id?: string;
+          organization_id: string;
+          supplier_id: string;
+          name: string;
+          ad_format?: string;
+          status?: "active" | "paused";
+          created_at?: string;
+        };
+        Update: {
+          id?: string;
+          organization_id?: string;
+          supplier_id?: string;
+          name?: string;
+          ad_format?: string;
+          status?: "active" | "paused";
+          created_at?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "placements_supplier_id_organization_id_fkey";
+            columns: ["supplier_id"];
+            isOneToOne: false;
+            referencedRelation: "clients";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
+      placement_stats: {
+        Row: {
+          id: string;
+          organization_id: string;
+          placement_id: string;
+          network: string;
+          date: string;
+          impressions: number;
+          clicks: number;
+          revenue: number;
+        };
+        Insert: {
+          id?: string;
+          organization_id: string;
+          placement_id: string;
+          network: string;
+          date: string;
+          impressions?: number;
+          clicks?: number;
+          revenue?: number;
+        };
+        Update: {
+          id?: string;
+          organization_id?: string;
+          placement_id?: string;
+          network?: string;
+          date?: string;
+          impressions?: number;
+          clicks?: number;
+          revenue?: number;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "placement_stats_placement_id_organization_id_fkey";
+            columns: ["placement_id"];
+            isOneToOne: false;
+            referencedRelation: "placements";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
     };
     Views: Record<string, never>;
     Functions: {
@@ -987,5 +1195,9 @@ export type Deliverable = Database["public"]["Tables"]["deliverables"]["Row"];
 export type SeoArticle = Database["public"]["Tables"]["seo_articles"]["Row"];
 export type Invoice = Database["public"]["Tables"]["invoices"]["Row"];
 export type Lead = Database["public"]["Tables"]["leads"]["Row"];
+export type Campaign = Database["public"]["Tables"]["campaigns"]["Row"];
+export type CampaignStat = Database["public"]["Tables"]["campaign_stats"]["Row"];
+export type Placement = Database["public"]["Tables"]["placements"]["Row"];
+export type PlacementStat = Database["public"]["Tables"]["placement_stats"]["Row"];
 export type SiteVisit = Database["public"]["Tables"]["site_visits"]["Row"];
 export type InvoiceItem = Database["public"]["Tables"]["invoice_items"]["Row"];

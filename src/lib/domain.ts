@@ -1,5 +1,7 @@
 import type {
   ArticleStatus,
+  CampaignChannel,
+  CampaignStatus,
   ClientType,
   DeliverableStatus,
   DeliverableType,
@@ -8,6 +10,53 @@ import type {
   LeadStatus,
   PricingModel,
 } from "@/lib/database.types";
+
+export const CAMPAIGN_CHANNELS: CampaignChannel[] = [
+  "google_ads",
+  "meta",
+  "tiktok",
+  "native",
+  "display",
+  "email",
+  "affiliate",
+  "other",
+];
+
+export const CAMPAIGN_CHANNEL_LABELS: Record<CampaignChannel, string> = {
+  google_ads: "Google Ads",
+  meta: "Meta",
+  tiktok: "TikTok",
+  native: "Native",
+  display: "Display",
+  email: "Email",
+  affiliate: "Affiliate",
+  other: "Other",
+};
+
+export const CAMPAIGN_CHANNEL_COLORS: Record<CampaignChannel, string> = {
+  google_ads: "#4285F4",
+  meta: "#0866FF",
+  tiktok: "#161823",
+  native: "#f59e0b",
+  display: "#8b5cf6",
+  email: "#10b981",
+  affiliate: "#ec4899",
+  other: "#64748b",
+};
+
+export const CAMPAIGN_STATUSES: CampaignStatus[] = [
+  "draft",
+  "active",
+  "paused",
+  "ended",
+];
+
+export const CAMPAIGN_STATUS_CLASSES: Record<CampaignStatus, string> = {
+  draft: "bg-slate-200 text-slate-700",
+  active: "bg-emerald-100 text-emerald-800",
+  paused: "bg-amber-100 text-amber-800",
+  ended: "bg-slate-100 text-slate-500",
+};
 
 export const PRICING_MODELS: PricingModel[] = [
   "fixed",
